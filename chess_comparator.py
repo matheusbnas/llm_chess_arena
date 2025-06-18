@@ -1,0 +1,513 @@
+import streamlit as st
+import chess
+import chess.pgn
+import os
+from io import StringIO
+import pandas as pd
+import time
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain_groq import ChatGroq
+from dotenv import load_dotenv, find_dotenv
+import re
+
+_ = load_dotenv(find_dotenv())
+
+# Modelos disponíveis
+MODELS = {
+    "Gemini-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-1.5-pro-latest"),
+    "Gemini-1.0-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-Pro"),
+    "GPT-4o": ChatOpenAI(temperature=0.1, model='gpt-4o'),
+    "GPT-4-Turbo": ChatOpenAI(temperature=0.1, model='gpt-4-turbo'),
+    "GPT-3.5-Turbo": ChatOpenAI(temperature=0.1, model='gpt-3.5-turbo'),
+    "Deepseek-Chat": ChatOpenAI(
+        temperature=0.1,
+        model="deepseek-chat",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url="https://api.deepseek.com/v1"
+    ),
+    "Deepseek-Coder": ChatOpenAI(
+        temperature=0.1,
+        model="deepseek-coder",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url="https://api.deepseek.com/v1"
+    ),
+}
+
+# Definindo os prompts para as LLMs
+system_template = """
+    You are a Chess Grandmaster.
+    We are currently playing chess. 
+    You are playing with the {color} pieces.
+    
+    I will give you the last move, the history of the game so far, the
+    actual board position and you must analyze the position and find the best move.
+
+    # OUTPUT
+    Do not use any special characters. 
+    Give your response in the following order:
+
+    1. Your move, using the following format: My move: "Move" (in the SAN notation, in english).
+    2. The explanation, in Portuguese, of why you chose the move, in no more than 3 sentences.
+    """
+
+prompt_template1 = ChatPromptTemplate.from_messages([
+    ("system", system_template.format(color="white")),
+    ("human", "{input}")])
+prompt_template2 = ChatPromptTemplate.from_messages([
+    ("system", system_template.format(color="black")),
+    ("human", "{input}")])
+
+judge_template = """
+    You are a professional chess arbiter, working on a LLM's Chess Competition.
+
+    Your job is to parse last player's move and ensure that all chess moves are valid and correctly formatted in 
+    Standard Algebraic Notation (SAN) for processing by the python-chess library.
+
+    ### Input:
+    - Last player's  move
+    - List of valid moves in SAN
+
+    ### Output:
+    - Return the corresponding move in the list of valid SAN moves.
+    - If the proposed move is not in the valid moves list, must respond with "None"
+
+    ### Your turn:
+    - Proposed move: {proposed_move}
+    - List of valid moves: {valid_moves}
+
+    You should only respond the valid move, without the move number, nothing more.
+    Your response:
+    """
+
+llm3 = ChatGroq(temperature=0, model_name="llama3-70b-8192")
+judge_prompt = PromptTemplate.from_template(template=judge_template)
+chain3 = judge_prompt | llm3
+
+
+def get_move(llm_chain, last_move, board, node, color, alert_msg=False):
+    global chain3
+    game_temp = chess.pgn.Game.from_board(board)
+    str_board = str(board)
+    history = str(game_temp)
+    pattern = r".*?(?=1\. e4)"
+    history = re.sub(pattern, "", history, flags=re.DOTALL)
+
+    legal_moves = list(board.legal_moves)
+    san_moves = str([board.san(move) for move in legal_moves])
+
+    template_input = """ 
+        Here's the history of the game:
+        {history}
+
+        The last move played was: 
+        {last_move}   
+
+        Find the best move.
+    """
+
+    if not alert_msg:
+        user_input = template_input.format(
+            last_move=last_move,
+            history=history)
+    else:
+        user_input = """
+        Here's the actual board position: 
+        {str_board}
+
+        Here is the game history so far:
+        {history}
+
+        The last move played was: 
+        {last_move}   
+
+        Here's a list of valid moves in this position:
+        {san_moves}
+
+        You must choose one of the valid moves.
+        """.format(san_moves=san_moves,
+                   history=history,
+                   str_board=str_board,
+                   last_move=last_move,
+                   )
+
+    response = llm_chain.invoke({"input": user_input})
+    move_raw = response.content.strip()
+
+    try:
+        if alert_msg:
+            print("Alerting player!")
+            print(move_raw)
+
+        move = chain3.invoke({"proposed_move": move_raw,
+                              "valid_moves": san_moves
+                              }).content.strip()
+        print(f"Old move: {move_raw}")
+        print("-----")
+        print(f"New move: {move}")
+
+        move_board = board.push_san(move)
+        next_node = node.add_variation(move_board)
+        next_node.comment = move_raw
+        return move, next_node
+
+    except ValueError:
+        print(f"Invalid move generated by {color}: {move}")
+        return None, node
+
+
+def load_pgn_games(folder_path):
+    games = []
+    for file in os.listdir(folder_path):
+        if file.endswith('.pgn'):
+            with open(os.path.join(folder_path, file), 'r') as f:
+                game = chess.pgn.read_game(StringIO(f.read()))
+                if game:
+                    games.append((file, game))
+    return games
+
+
+def display_board(board, flipped=False, key=None, highlight_squares=None):
+    import chess.svg
+    squares = highlight_squares or []
+    colors = {}
+    # Destaca só a casa de destino em verde
+    if len(squares) == 2:
+        colors[squares[1]] = '#7fff7f'  # destino em verde
+    elif len(squares) == 1:
+        colors[squares[0]] = '#7fff7f'
+    board_svg = chess.svg.board(
+        board=board,
+        size=480,
+        orientation=chess.BLACK if flipped else chess.WHITE,
+        squares=colors,
+        arrows=[]
+    )
+    st.write(
+        f'<div style="display: flex; justify-content: center;">{board_svg}</div>', unsafe_allow_html=True, key=key)
+
+
+def get_move_history(game):
+    move_history = []
+    node = game
+    current_move = 1
+    move_pair = []
+    while node.variations:
+        node = node.variation(0)
+        if current_move % 2 == 1:
+            move_text = f"{(current_move + 1) // 2}. {node.san()}"
+            move_pair = [move_text]
+        else:
+            move_text = f"{node.san()}"
+            move_pair.append(move_text)
+            move_row = {
+                "number": (current_move) // 2,
+                "white": move_pair[0],
+                "black": move_pair[1],
+                "white_comment": node.parent.comment if node.parent.comment else "",
+                "black_comment": node.comment if node.comment else ""
+            }
+            move_history.append(move_row)
+            move_pair = []
+        current_move += 1
+    if move_pair:
+        move_history.append({
+            "number": (current_move + 1) // 2,
+            "white": move_pair[0],
+            "black": "",
+            "white_comment": node.comment if node.comment else "",
+            "black_comment": ""
+        })
+    return move_history
+
+
+def compute_scores():
+    game_folders = [d for d in os.listdir(
+        '.') if os.path.isdir(d) and ' vs ' in d]
+    score_rows = []
+    for folder in game_folders:
+        games = load_pgn_games(folder)
+        white, black = folder.split(' vs ')
+        w_wins = w_draws = w_losses = 0
+        for file, game in games:
+            result = game.headers.get('Result', '')
+            if result == '1-0':
+                w_wins += 1
+            elif result == '0-1':
+                w_losses += 1
+            elif result == '1/2-1/2':
+                w_draws += 1
+        total = w_wins + w_draws + w_losses
+        score_rows.append({
+            'Brancas': white,
+            'Pretas': black,
+            'Vitórias Brancas': w_wins,
+            'Empates': w_draws,
+            'Vitórias Pretas': w_losses,
+            '% Brancas': f"{100*w_wins/total:.1f}%" if total else '-',
+            '% Empates': f"{100*w_draws/total:.1f}%" if total else '-',
+            '% Pretas': f"{100*w_losses/total:.1f}%" if total else '-',
+            'Total': total
+        })
+    return pd.DataFrame(score_rows)
+
+
+def pgn_info(game, file=None):
+    # Extrai informações do PGN para o dashboard
+    info = {}
+    info['White'] = game.headers.get('White', '-')
+    info['Black'] = game.headers.get('Black', '-')
+    info['Result'] = game.headers.get('Result', '-')
+    info['Date'] = game.headers.get('Date', '-')
+    info['Time'] = game.headers.get('Time', '-')
+    info['Opening'] = game.headers.get('Opening', '-')
+    info['ECO'] = game.headers.get('ECO', '-')
+    info['Event'] = game.headers.get('Event', '-')
+    info['Site'] = game.headers.get('Site', '-')
+    info['Round'] = game.headers.get('Round', '-')
+    info['File'] = file or '-'
+    return info
+
+
+def main():
+    st.set_page_config(page_title="LLM Chess Arena Dashboard", layout="wide")
+    st.markdown("""
+        <style>
+        body, .main {background-color: #222c36;}
+        .stTabs [data-baseweb="tab-list"] {justify-content: center;}
+        .stTabs [data-baseweb="tab"] {font-size: 1.1rem; font-weight: bold;}
+        .move-comment {background:#263238; padding:16px; border-radius:10px; font-size:1.1rem; color:#fff; margin-top:18px;}
+        .move-label {font-size:1.2rem; color:#80cbc4; font-weight:bold;}
+        .move-nav-btn {font-size:1.5rem; margin:0 8px;}
+        .move-list {background:#263238; color:#fff; border-radius:8px; padding:10px; font-size:1.1rem;}
+        .move-list .current {background:#80cbc4; color:#222c36; border-radius:4px; padding:2px 6px;}
+        .move-list .move-row {margin-bottom:2px;}
+        .info-box {background:#263238; color:#fff; border-radius:8px; padding:16px; margin-bottom:16px;}
+        .info-title {color:#80cbc4; font-size:1.1rem; font-weight:bold; margin-bottom:8px;}
+        .player-row {display:flex; justify-content:space-between; margin-bottom:4px;}
+        .player-name {font-weight:bold;}
+        .result-box {background:#1e272e; color:#fff; border-radius:6px; padding:8px; margin-bottom:12px; text-align:center; font-size:1.1rem;}
+        .open-link {background:#37474f; color:#fff; border-radius:6px; padding:8px; text-align:center; margin-top:10px;}
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <h1 style='text-align: center; color: #80cbc4;'>LLM Chess Arena Dashboard</h1>
+        <hr style='margin: 20px 0; border-color: #37474f;'>
+    """, unsafe_allow_html=True)
+
+    tabs = st.tabs(["Partida", "Score dos Modelos", "Jogo em tempo real"])
+
+    with tabs[0]:
+        st.sidebar.header("Configuração da Partida")
+        game_folders = [d for d in os.listdir(
+            '.') if os.path.isdir(d) and ' vs ' in d]
+        if not game_folders:
+            st.warning("Nenhum confronto encontrado.")
+            return
+        game_folders = sorted(game_folders)
+        folder = st.sidebar.selectbox("Confronto:", game_folders, key="folder")
+        games = load_pgn_games(folder)
+        if not games:
+            st.warning("Nenhum jogo encontrado neste confronto.")
+            return
+        file, game = st.sidebar.selectbox(
+            "Jogo:", games, format_func=lambda x: x[0], key="game")
+        moves = list(game.mainline_moves())
+        move_history = get_move_history(game)
+        max_moves = len(moves)
+
+        # Estado do movimento atual
+        if 'move_number' not in st.session_state:
+            st.session_state.move_number = 0
+        # Resetar move_number se trocar de jogo
+        if 'last_game' not in st.session_state or st.session_state.last_game != (folder, file):
+            st.session_state.move_number = 0
+            st.session_state.last_game = (folder, file)
+
+        # Flip board
+        flipped = st.sidebar.checkbox(
+            "Flip Board", value=False, key="flip_board")
+
+        # Layout: 3 colunas (info | tabuleiro | lances)
+        col_info, col_board, col_moves = st.columns([1.2, 2, 1.2], gap="large")
+        with col_info:
+            info = pgn_info(game, file)
+            st.markdown("<div class='info-box'>", unsafe_allow_html=True)
+            st.markdown("<div class='info-title'>PLAYERS</div>",
+                        unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='player-row'><span class='player-name'>{info['White']}</span> <span>Brancas</span></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='player-row'><span class='player-name'>{info['Black']}</span> <span>Pretas</span></div>", unsafe_allow_html=True)
+            st.markdown("<div class='info-title'>RESULT</div>",
+                        unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='result-box'>{info['Result']}</div>", unsafe_allow_html=True)
+            st.markdown("<div class='info-title'>INFORMATION</div>",
+                        unsafe_allow_html=True)
+            st.markdown(
+                f"<b>Data:</b> {info['Date']}<br><b>Tempo:</b> {info['Time']}<br><b>Abertura:</b> {info['Opening']}<br><b>ECO:</b> {info['ECO']}<br><b>Arquivo:</b> {info['File']}", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        with col_board:
+            board = chess.Board()
+            for i, move in enumerate(moves):
+                if i < st.session_state.move_number:
+                    board.push(move)
+            # Highlight squares (last move)
+            highlight = []
+            if st.session_state.move_number > 0:
+                last_move = moves[st.session_state.move_number-1]
+                highlight = [last_move.from_square, last_move.to_square]
+            display_board(board, flipped=flipped, key="mainboard",
+                          highlight_squares=highlight)
+            # Alertas de xeque e xeque-mate
+            if board.is_checkmate():
+                st.markdown("<div style='background:#ff5252; color:#fff; padding:12px; border-radius:8px; text-align:center; font-size:1.1rem; margin-bottom:10px;'><b>XEQUE-MATE!</b></div>", unsafe_allow_html=True)
+            elif board.is_check():
+                st.markdown("<div style='background:#ffe082; color:#222; padding:12px; border-radius:8px; text-align:center; font-size:1.1rem; margin-bottom:10px;'><b>XEQUE!</b></div>", unsafe_allow_html=True)
+            # Botões de navegação abaixo do tabuleiro
+            nav_cols = st.columns([1, 1, 1, 1, 6, 1])
+            with nav_cols[1]:
+                if st.button('⏮️', help='Primeiro lance'):
+                    st.session_state.move_number = 0
+            with nav_cols[2]:
+                if st.button('◀️', help='Lance anterior') and st.session_state.move_number > 0:
+                    st.session_state.move_number -= 1
+            with nav_cols[3]:
+                if st.button('▶️', help='Próximo lance') and st.session_state.move_number < max_moves:
+                    st.session_state.move_number += 1
+            with nav_cols[4]:
+                if st.button('⏭️', help='Último lance'):
+                    st.session_state.move_number = max_moves
+            # Slider para navegação alternativa
+            st.session_state.move_number = st.slider(
+                "Lance (move)", 0, max_moves, st.session_state.move_number, key="move_slider")
+            # Comentário e passo a passo
+            if st.session_state.move_number > 0:
+                idx = (st.session_state.move_number-1)//2
+                is_white = st.session_state.move_number % 2 == 1
+                move_label = move_history[idx]["white"] if is_white else move_history[idx]["black"]
+                comment = move_history[idx]["white_comment"] if is_white else move_history[idx]["black_comment"]
+                st.markdown(
+                    f"<div class='move-label'>Lance: {move_label}</div>", unsafe_allow_html=True)
+                if comment:
+                    st.markdown(
+                        f"<div class='move-comment'>{comment}</div>", unsafe_allow_html=True)
+        with col_moves:
+            # Criar DataFrame de movimentos
+            moves_df = pd.DataFrame(move_history)
+            moves_df = moves_df[['number', 'white', 'black']]
+            moves_df.columns = ['#', 'Brancas', 'Pretas']
+            # Calcular linha do lance atual
+            current_row = max(0, (st.session_state.move_number-1)//2)
+
+            def highlight_row(row):
+                return ['background-color: #7fff7f; color: #222c36; font-weight:bold;' if row.name == current_row else 'background-color: #22303c; color: #fff;' for _ in row]
+            styled_df = moves_df.style.apply(highlight_row, axis=1)
+            st.markdown(
+                "<div style='margin-bottom:8px; color:#80cbc4; font-weight:bold; letter-spacing:1px;'>MOVES</div>", unsafe_allow_html=True)
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            st.checkbox("Flip Board", value=flipped,
+                        key="flip_board_right", help="Virar o tabuleiro")
+            st.info("Use o slider ou os botões para navegar pelos lances.")
+
+    with tabs[1]:
+        st.header("Score dos Modelos")
+        st.markdown("Veja o desempenho geral de cada confronto/modelo.")
+        df = compute_scores()
+        if not df.empty:
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum jogo encontrado para calcular o score.")
+
+    with tabs[2]:
+        st.header("Jogo em tempo real")
+        st.markdown(
+            "Escolha os modelos e a abertura para iniciar uma partida em tempo real.")
+
+        # Robust session state initialization for real-time game
+        for key, value in [
+            ("board", chess.Board()),
+            ("game", chess.pgn.Game()),
+            ("node", None),
+            ("move_history", []),
+            ("last_move", None),
+            ("is_game_over", False)
+        ]:
+            if key not in st.session_state:
+                st.session_state[key] = value
+        if st.session_state.node is None:
+            st.session_state.node = st.session_state.game
+
+        # Escolha dos modelos
+        white_player = st.sidebar.selectbox(
+            "Modelo das Brancas:", list(MODELS.keys()), key="white_player")
+        black_player = st.sidebar.selectbox(
+            "Modelo das Pretas:", list(MODELS.keys()), key="black_player")
+
+        # Escolha da abertura
+        opening = st.sidebar.selectbox("Abertura:", [
+                                       "1. e4", "1. d4", "1. c4", "1. Nf3", "1. b3", "1. c3", "1. e3", "1. d3", "1. g3", "1. Nc3"], key="opening")
+
+        # Iniciar o jogo
+        if st.sidebar.button("Iniciar Jogo"):
+            st.session_state.board = chess.Board()
+            st.session_state.game = chess.pgn.Game()
+            st.session_state.node = st.session_state.game
+            st.session_state.move_history = []
+            st.session_state.last_move = None
+            st.session_state.is_game_over = False
+            st.session_state.board.push_san(opening.split()[-1])
+            st.session_state.node = st.session_state.node.add_variation(
+                st.session_state.board.peek())
+            st.session_state.last_move = opening
+
+        # Executar o próximo lance
+        if st.sidebar.button("Próximo Lance") and not st.session_state.is_game_over:
+            if st.session_state.board.turn == chess.WHITE:
+                llm_chain = prompt_template1 | MODELS[white_player]
+                color = "white"
+            else:
+                llm_chain = prompt_template2 | MODELS[black_player]
+                color = "black"
+
+            move, next_node = get_move(
+                llm_chain, st.session_state.last_move, st.session_state.board, st.session_state.node, color)
+            if move:
+                st.session_state.last_move = move
+                st.session_state.node = next_node
+                st.session_state.move_history.append(move)
+                st.session_state.is_game_over = st.session_state.board.is_game_over()
+
+        # Exibir o tabuleiro
+        display_board(st.session_state.board, key="realtime_board")
+
+        # Exibir o histórico de lances
+        if st.session_state.move_history:
+            st.markdown("<div class='move-list'>", unsafe_allow_html=True)
+            for i, move in enumerate(st.session_state.move_history):
+                st.markdown(
+                    f"<div class='move-row'>{i+1}. {move}</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # Salvar a partida ao final
+        if st.session_state.is_game_over:
+            folder_name = f"{white_player} vs {black_player}"
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+            game_num = max([int(i.split("_")[0])
+                           for i in ["0_0"] + os.listdir(folder_name)]) + 1
+            st.session_state.game.headers["White"] = white_player
+            st.session_state.game.headers["Black"] = black_player
+            st.session_state.game.headers["Result"] = st.session_state.board.result(
+            )
+            with open(f"{folder_name}/{game_num}_game.pgn", "w") as f:
+                f.write(str(st.session_state.game))
+            st.success("Partida salva!")
+
+
+if __name__ == "__main__":
+    main()
