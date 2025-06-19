@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>♟️ LLM Chess Arena</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/chessboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="logo">♟️ LLM Chess Arena</h1>
+                    <nav class="nav">
+                        <button class="nav-btn active" data-page="dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </button>
+                        <button class="nav-btn" data-page="arena">
+                            <i class="fas fa-sword"></i> Arena
+                        </button>
+                        <button class="nav-btn" data-page="play">
+                            <i class="fas fa-gamepad"></i> Jogar vs LLM
+                        </button>
+                        <button class="nav-btn" data-page="analysis">
+                            <i class="fas fa-chart-line"></i> Análise
+                        </button>
+                        <button class="nav-btn" data-page="rankings">
+                            <i class="fas fa-trophy"></i> Rankings
+                        </button>
+                        <button class="nav-btn" data-page="settings">
+                            <i class="fas fa-cog"></i> Configurações
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page active">
+                    <div class="page-header">
+                        <h2>📈 Dashboard Geral</h2>
+                        <p>Visão geral das estatísticas e partidas recentes</p>
+                    </div>
+
+                    <!-- Metrics Cards -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon">🎮</div>
+                            <div class="metric-content">
+                                <h3 id="total-games">0</h3>
+                                <p>Total de Partidas</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">🤖</div>
+                            <div class="metric-content">
+                                <h3 id="active-models">0</h3>
+                                <p>Modelos Ativos</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">📊</div>
+                            <div class="metric-content">
+                                <h3 id="avg-moves">0</h3>
+                                <p>Lances por Partida</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">🏆</div>
+                            <div class="metric-content">
+                                <h3 id="tournaments">0</h3>
+                                <p>Torneios Completos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="charts-section">
+                        <div class="chart-container">
+                            <h3>📊 Resultados por Modelo</h3>
+                            <canvas id="results-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>🎯 Distribuição de Resultados</h3>
+                            <canvas id="winrate-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Games -->
+                    <div class="recent-games">
+                        <h3>🕒 Partidas Recentes</h3>
+                        <div class="table-container">
+                            <table id="recent-games-table">
+                                <thead>
+                                    <tr>
+                                        <th>Brancas</th>
+                                        <th>Pretas</th>
+                                        <th>Resultado</th>
+                                        <th>Lances</th>
+                                        <th>Data</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arena Page -->
+                <div id="arena-page" class="page">
+                    <div class="page-header">
+                        <h2>⚔️ Arena de Batalha</h2>
+                        <p>Configure e inicie batalhas entre modelos LLM</p>
+                    </div>
+
+                    <div class="arena-layout">
+                        <div class="arena-config">
+                            <div class="config-section">
+                                <h3>🎮 Configuração da Batalha</h3>
+                                
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="tournament-mode"> Modo Torneio
+                                    </label>
+                                </div>
+
+                                <div id="individual-battle" class="battle-config">
+                                    <div class="form-group">
+                                        <label for="white-model">Modelo das Brancas:</label>
+                                        <select id="white-model"></select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="black-model">Modelo das Pretas:</label>
+                                        <select id="black-model"></select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="opening">Abertura:</label>
+                                        <select id="opening">
+                                            <option value="e4">1. e4</option>
+                                            <option value="d4">1. d4</option>
+                                            <option value="c4">1. c4</option>
+                                            <option value="Nf3">1. Nf3</option>
+                                            <option value="b3">1. b3</option>
+                                            <option value="c3">1. c3</option>
+                                            <option value="e3">1. e3</option>
+                                            <option value="d3">1. d3</option>
+                                            <option value="g3">1. g3</option>
+                                            <option value="Nc3">1. Nc3</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="num-games">Número de partidas:</label>
+                                        <input type="range" id="num-games" min="1" max="20" value="5">
+                                        <span id="num-games-value">5</span>
+                                    </div>
+                                    
+                                    <button id="start-battle" class="btn btn-primary">
+                                        <i class="fas fa-play"></i> Iniciar Batalha
+                                    </button>
+                                </div>
+
+                                <div id="tournament-config" class="battle-config" style="display: none;">
+                                    <div class="form-group">
+                                        <label>Modelos Participantes:</label>
+                                        <div id="tournament-models" class="checkbox-group"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="games-per-pair">Partidas por confronto:</label>
+                                        <input type="range" id="games-per-pair" min="1" max="10" value="3">
+                                        <span id="games-per-pair-value">3</span>
+                                    </div>
+                                    
+                                    <button id="start-tournament" class="btn btn-primary">
+                                        <i class="fas fa-trophy"></i> Iniciar Torneio
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="arena-display">
+                            <div class="battle-status">
+                                <h3>🎮 Status da Batalha</h3>
+                                <div id="battle-info" class="info-card">
+                                    <p>Nenhuma batalha em andamento</p>
+                                </div>
+                            </div>
+
+                            <div class="battle-board">
+                                <div id="arena-chessboard"></div>
+                            </div>
+
+                            <div class="battle-progress">
+                                <div class="progress-bar">
+                                    <div id="battle-progress-fill" class="progress-fill"></div>
+                                </div>
+                                <div id="battle-results" class="results-table"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Play vs LLM Page -->
+                <div id="play-page" class="page">
+                    <div class="page-header">
+                        <h2>🎯 Jogar contra LLM</h2>
+                        <p>Desafie um modelo de IA em uma partida de xadrez</p>
+                    </div>
+
+                    <div class="play-layout">
+                        <div class="play-config">
+                            <div class="config-section">
+                                <h3>🎮 Configuração do Jogo</h3>
+                                
+                                <div class="form-group">
+                                    <label for="opponent-model">Oponente:</label>
+                                    <select id="opponent-model"></select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Sua cor:</label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="player-color" value="white" checked> Brancas</label>
+                                        <label><input type="radio" name="player-color" value="black"> Pretas</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="difficulty">Dificuldade:</label>
+                                    <select id="difficulty">
+                                        <option value="beginner">Iniciante</option>
+                                        <option value="intermediate">Intermediário</option>
+                                        <option value="advanced" selected>Avançado</option>
+                                        <option value="master">Mestre</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="time-control">Controle de tempo:</label>
+                                    <select id="time-control">
+                                        <option value="unlimited">Sem limite</option>
+                                        <option value="5">5 min</option>
+                                        <option value="10" selected>10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                                
+                                <button id="new-game" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> Novo Jogo
+                                </button>
+                                
+                                <div class="game-controls" style="display: none;">
+                                    <button id="restart-game" class="btn btn-secondary">
+                                        <i class="fas fa-redo"></i> Reiniciar
+                                    </button>
+                                    <button id="save-game" class="btn btn-secondary">
+                                        <i class="fas fa-save"></i> Salvar
+                                    </button>
+                                    <button id="hint" class="btn btn-secondary">
+                                        <i class="fas fa-lightbulb"></i> Dica
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="play-display">
+                            <div class="game-info">
+                                <div id="game-status" class="status-card">
+                                    <p>Configure um novo jogo para começar</p>
+                                </div>
+                            </div>
+
+                            <div class="game-board">
+                                <div id="play-chessboard"></div>
+                            </div>
+
+                            <div class="move-input" style="display: none;">
+                                <h4>🎯 Seu Lance</h4>
+                                <div class="input-group">
+                                    <input type="text" id="move-input" placeholder="Digite seu lance (ex: e4, Nf3)">
+                                    <button id="make-move" class="btn btn-primary">
+                                        <i class="fas fa-arrow-right"></i> Jogar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="move-history">
+                                <h4>📝 Histórico de Lances</h4>
+                                <div id="move-list" class="move-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Page -->
+                <div id="analysis-page" class="page">
+                    <div class="page-header">
+                        <h2>📊 Análise de Partidas</h2>
+                        <p>Analise partidas e compare modelos</p>
+                    </div>
+
+                    <div class="analysis-tabs">
+                        <button class="tab-btn active" data-tab="individual">🔍 Análise Individual</button>
+                        <button class="tab-btn" data-tab="comparative">📈 Análise Comparativa</button>
+                        <button class="tab-btn" data-tab="lichess">🌐 Integração Lichess</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="individual-tab" class="tab-panel active">
+                            <div class="analysis-layout">
+                                <div class="analysis-config">
+                                    <h3>🔍 Selecionar Partida</h3>
+                                    <div class="form-group">
+                                        <label for="game-select">Partida:</label>
+                                        <select id="game-select"></select>
+                                    </div>
+                                    <button id="analyze-game" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Analisar
+                                    </button>
+                                </div>
+
+                                <div class="analysis-display">
+                                    <div class="analysis-board">
+                                        <div id="analysis-chessboard"></div>
+                                        <div class="board-controls">
+                                            <button id="first-move" class="btn btn-sm">⏮️</button>
+                                            <button id="prev-move" class="btn btn-sm">◀️</button>
+                                            <button id="next-move" class="btn btn-sm">▶️</button>
+                                            <button id="last-move" class="btn btn-sm">⏭️</button>
+                                        </div>
+                                        <input type="range" id="move-slider" min="0" max="0" value="0">
+                                    </div>
+
+                                    <div class="analysis-results">
+                                        <h4>📊 Resultados da Análise</h4>
+                                        <div id="analysis-metrics" class="metrics-grid"></div>
+                                        <div id="evaluation-chart"></div>
+                                        <div id="best-worst-moves"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="comparative-tab" class="tab-panel">
+                            <div class="comparison-layout">
+                                <div class="comparison-config">
+                                    <h3>📈 Comparar Modelos</h3>
+                                    <div class="form-group">
+                                        <label for="model1-select">Modelo 1:</label>
+                                        <select id="model1-select"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="model2-select">Modelo 2:</label>
+                                        <select id="model2-select"></select>
+                                    </div>
+                                    <button id="compare-models" class="btn btn-primary">
+                                        <i class="fas fa-balance-scale"></i> Comparar
+                                    </button>
+                                </div>
+
+                                <div class="comparison-results">
+                                    <div id="head-to-head" class="comparison-section"></div>
+                                    <div id="performance-metrics" class="comparison-section"></div>
+                                    <div id="performance-chart" class="comparison-section"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="lichess-tab" class="tab-panel">
+                            <div class="lichess-layout">
+                                <div class="lichess-config">
+                                    <h3>🌐 Configuração Lichess</h3>
+                                    <div class="form-group">
+                                        <label for="lichess-token">Token de API:</label>
+                                        <input type="password" id="lichess-token" placeholder="Seu token do Lichess">
+                                    </div>
+                                    <button id="test-lichess" class="btn btn-secondary">
+                                        <i class="fas fa-link"></i> Testar Conexão
+                                    </button>
+
+                                    <div class="form-group">
+                                        <label for="lichess-username">Nome de usuário:</label>
+                                        <input type="text" id="lichess-username" placeholder="Username do Lichess">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="max-import-games">Máximo de partidas:</label>
+                                        <input type="range" id="max-import-games" min="10" max="1000" value="100">
+                                        <span id="max-import-value">100</span>
+                                    </div>
+                                    <button id="import-games" class="btn btn-primary">
+                                        <i class="fas fa-download"></i> Importar Partidas
+                                    </button>
+
+                                    <button id="apply-rag" class="btn btn-success">
+                                        <i class="fas fa-brain"></i> Aplicar Melhoramentos RAG
+                                    </button>
+                                </div>
+
+                                <div class="lichess-results">
+                                    <div id="import-status" class="status-section"></div>
+                                    <div id="rag-improvements" class="improvements-section"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rankings Page -->
+                <div id="rankings-page" class="page">
+                    <div class="page-header">
+                        <h2>🏆 Rankings e Estatísticas</h2>
+                        <p>Rankings ELO e estatísticas detalhadas dos modelos</p>
+                    </div>
+
+                    <div class="rankings-tabs">
+                        <button class="tab-btn active" data-tab="general">🏆 Ranking Geral</button>
+                        <button class="tab-btn" data-tab="detailed">📊 Estatísticas Detalhadas</button>
+                        <button class="tab-btn" data-tab="openings">🎯 Performance por Abertura</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="general-tab" class="tab-panel active">
+                            <div class="rankings-layout">
+                                <div class="rankings-table">
+                                    <h3>🏆 Ranking ELO</h3>
+                                    <div class="table-container">
+                                        <table id="elo-rankings-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Posição</th>
+                                                    <th>Modelo</th>
+                                                    <th>Rating ELO</th>
+                                                    <th>Partidas</th>
+                                                    <th>Taxa de Vitória</th>
+                                                    <th>Precisão Média</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="elo-chart">
+                                    <h3>📈 Evolução do Rating ELO</h3>
+                                    <canvas id="elo-progression-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="detailed-tab" class="tab-panel">
+                            <div class="detailed-stats-layout">
+                                <div class="model-selector">
+                                    <h3>📊 Estatísticas Detalhadas</h3>
+                                    <div class="form-group">
+                                        <label for="stats-model-select">Selecione um modelo:</label>
+                                        <select id="stats-model-select"></select>
+                                    </div>
+                                </div>
+
+                                <div class="detailed-stats">
+                                    <div id="model-metrics" class="metrics-grid"></div>
+                                    <div id="color-performance" class="chart-container"></div>
+                                    <div id="recent-performance" class="chart-container"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="openings-tab" class="tab-panel">
+                            <div class="openings-layout">
+                                <div class="openings-table">
+                                    <h3>🎯 Performance por Abertura</h3>
+                                    <div class="table-container">
+                                        <table id="openings-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Abertura</th>
+                                                    <th>Partidas</th>
+                                                    <th>Taxa de Vitória</th>
+                                                    <th>Precisão Média</th>
+                                                    <th>Lances Médios</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="openings-chart">
+                                    <h3>📊 Popularidade das Aberturas</h3>
+                                    <canvas id="openings-popularity-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page">
+                    <div class="page-header">
+                        <h2>⚙️ Configurações</h2>
+                        <p>Configure modelos, APIs e preferências do sistema</p>
+                    </div>
+
+                    <div class="settings-tabs">
+                        <button class="tab-btn active" data-tab="models">🤖 Modelos</button>
+                        <button class="tab-btn" data-tab="apis">🌐 APIs</button>
+                        <button class="tab-btn" data-tab="game">🎮 Jogo</button>
+                        <button class="tab-btn" data-tab="data">💾 Dados</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="models-tab" class="tab-panel active">
+                            <div class="settings-section">
+                                <h3>🔑 Chaves de API</h3>
+                                <div class="form-group">
+                                    <label for="openai-key">OpenAI API Key:</label>
+                                    <input type="password" id="openai-key" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="google-key">Google API Key:</label>
+                                    <input type="password" id="google-key" placeholder="AIza...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="deepseek-key">DeepSeek API Key:</label>
+                                    <input type="password" id="deepseek-key" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="groq-key">Groq API Key:</label>
+                                    <input type="password" id="groq-key" placeholder="gsk_...">
+                                </div>
+                                <button id="save-api-keys" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Salvar Chaves
+                                </button>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>🎛️ Parâmetros dos Modelos</h3>
+                                <div class="form-group">
+                                    <label for="temperature">Temperatura:</label>
+                                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.1">
+                                    <span id="temperature-value">0.1</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="max-tokens">Máximo de tokens:</label>
+                                    <input type="range" id="max-tokens" min="100" max="4000" step="100" value="1000">
+                                    <span id="max-tokens-value">1000</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="thinking-time">Tempo de reflexão (s):</label>
+                                    <input type="range" id="thinking-time" min="1" max="30" value="5">
+                                    <span id="thinking-time-value">5</span>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>🧪 Teste dos Modelos</h3>
+                                <div class="form-group">
+                                    <label for="test-model-select">Modelo para teste:</label>
+                                    <select id="test-model-select"></select>
+                                </div>
+                                <button id="test-model" class="btn btn-secondary">
+                                    <i class="fas fa-vial"></i> Testar Modelo
+                                </button>
+                                <div id="test-results" class="test-results"></div>
+                            </div>
+                        </div>
+
+                        <div id="apis-tab" class="tab-panel">
+                            <div class="settings-section">
+                                <h3>♟️ Lichess API</h3>
+                                <div class="form-group">
+                                    <label for="settings-lichess-token">Token do Lichess:</label>
+                                    <input type="password" id="settings-lichess-token" placeholder="lip_...">
+                                </div>
+                                <button id="connect-lichess" class="btn btn-primary">
+                                    <i class="fas fa-link"></i> Conectar ao Lichess
+                                </button>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>🐟 Stockfish Engine</h3>
+                                <div class="form-group">
+                                    <label for="stockfish-path">Caminho do Stockfish:</label>
+                                    <input type="text" id="stockfish-path" value="/usr/local/bin/stockfish">
+                                </div>
+                                <div class="form-group">
+                                    <label for="stockfish-depth">Profundidade de análise:</label>
+                                    <input type="range" id="stockfish-depth" min="1" max="20" value="15">
+                                    <span id="stockfish-depth-value">15</span>
+                                </div>
+                                <button id="test-stockfish" class="btn btn-secondary">
+                                    <i class="fas fa-vial"></i> Testar Stockfish
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="game-tab" class="tab-panel">
+                            <div class="settings-section">
+                                <h3>🎯 Configurações Padrão</h3>
+                                <div class="form-group">
+                                    <label for="default-time-control">Controle de tempo padrão:</label>
+                                    <select id="default-time-control">
+                                        <option value="unlimited">Sem limite</option>
+                                        <option value="5">5 min</option>
+                                        <option value="10" selected>10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="auto-save-games" checked> Salvar partidas automaticamente
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="show-coordinates" checked> Mostrar coordenadas no tabuleiro
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="highlight-last-move" checked> Destacar último lance
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>📊 Configurações de Análise</h3>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="auto-analysis"> Análise automática após partidas
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="analysis-depth">Profundidade da análise automática:</label>
+                                    <input type="range" id="analysis-depth" min="5" max="20" value="12">
+                                    <span id="analysis-depth-value">12</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="save-analysis" checked> Salvar resultados da análise
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="data-tab" class="tab-panel">
+                            <div class="settings-section">
+                                <h3>📊 Estatísticas do Banco de Dados</h3>
+                                <div id="db-stats" class="metrics-grid"></div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>🗂️ Gerenciamento de Dados</h3>
+                                <button id="export-data" class="btn btn-primary">
+                                    <i class="fas fa-download"></i> Exportar Dados
+                                </button>
+                                <div class="form-group">
+                                    <label for="import-file">Importar Dados:</label>
+                                    <input type="file" id="import-file" accept=".json">
+                                </div>
+                                <button id="import-data" class="btn btn-secondary">
+                                    <i class="fas fa-upload"></i> Importar
+                                </button>
+                            </div>
+
+                            <div class="settings-section danger-zone">
+                                <h3>🗑️ Zona de Perigo</h3>
+                                <p class="warning">⚠️ Atenção: As operações abaixo são irreversíveis!</p>
+                                <button id="clear-old-games" class="btn btn-warning">
+                                    <i class="fas fa-trash"></i> Limpar Partidas Antigas (>30 dias)
+                                </button>
+                                <button id="reset-database" class="btn btn-danger">
+                                    <i class="fas fa-bomb"></i> Resetar Banco de Dados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p id="loading-text">Carregando...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0-beta.6/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="js/chessboard.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/arena.js"></script>
+    <script src="js/play.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/rankings.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
