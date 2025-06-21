@@ -271,6 +271,12 @@ def pgn_info(game, file=None):
     return info
 
 
+def on_game_change():
+    game_files = [f[0] for f in st.session_state.games]
+    st.session_state.game_index = game_files.index(
+        st.session_state.selected_game_file)
+
+
 def main():
     st.set_page_config(page_title="LLM Chess Arena Dashboard", layout="wide")
     st.markdown("""
