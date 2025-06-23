@@ -1,7 +1,6 @@
 import streamlit as st
 import chess
 import chess.pgn
-import chess.engine
 import os
 from io import StringIO
 import pandas as pd
@@ -150,7 +149,7 @@ def main():
     elif page == "🏆 Rankings":
         show_rankings(db, analyzer, ui)
     elif page == "⚙️ Configurações":
-        show_settings(model_manager, lichess_api)
+        show_settings(model_manager, lichess_api, db)
 
 
 def show_dashboard(db, analyzer, ui):
@@ -459,34 +458,13 @@ def show_game_analysis(db, analyzer, lichess_api, ui):
                     analysis = analyzer.analyze_game(game)
 
                     # Key metrics
-                    st.metric("Precisão das Brancas",
-                              f"{analysis['white_accuracy']:.1f}%")
-                    st.metric("Precisão das Pretas",
-                              f"{analysis['black_accuracy']:.1f}%")
                     st.metric("Lances Totais", analysis['total_moves'])
-                    st.metric("Erros Graves", analysis['blunders'])
-
-                    # Move quality chart
-                    if analysis['move_evaluations']:
-                        fig = px.line(
-                            x=range(len(analysis['move_evaluations'])),
-                            y=analysis['move_evaluations'],
-                            title="Avaliação por Lance"
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
 
                     # Best/worst moves
-                    if analysis['best_moves']:
-                        st.markdown("#### ✅ Melhores Lances")
-                        for move in analysis['best_moves'][:3]:
-                            st.success(
-                                f"Lance {move['move_number']}: {move['san']}")
-
-                    if analysis['worst_moves']:
-                        st.markdown("#### ❌ Piores Lances")
-                        for move in analysis['worst_moves'][:3]:
-                            st.error(
-                                f"Lance {move['move_number']}: {move['san']}")
+                    if 'captures' in analysis:
+                        st.metric("Capturas", analysis['captures'])
+                    if 'checks' in analysis:
+                        st.metric("Checks", analysis['checks'])
         else:
             st.info("Nenhuma partida encontrada para análise.")
 
@@ -736,7 +714,7 @@ def show_rankings(db, analyzer, ui):
     with tab3:
         st.markdown("### 🎯 Performance por Abertura")
 
-        opening_stats = analyzer.get_opening_statistics()
+        opening_stats = analyzer.get_opening_statistics(db)
 
         if opening_stats:
             # Opening performance table
@@ -769,7 +747,7 @@ def show_rankings(db, analyzer, ui):
             st.info("Dados insuficientes para análise de aberturas.")
 
 
-def show_settings(model_manager, lichess_api):
+def show_settings(model_manager, lichess_api, db):
     st.markdown("## ⚙️ Configurações")
 
     tab1, tab2, tab3, tab4 = st.tabs(
@@ -889,30 +867,6 @@ GROQ_API_KEY={groq_key}
             else:
                 st.warning("⚠️ Insira um token válido.")
 
-        # Stockfish configuration
-        st.markdown("#### 🐟 Stockfish Engine")
-
-        stockfish_path = st.text_input(
-            "Caminho do Stockfish:",
-            value="/usr/local/bin/stockfish",
-            help="Caminho para o executável do Stockfish"
-        )
-
-        stockfish_depth = st.slider(
-            "Profundidade de análise:",
-            1, 20, 15, 1,
-            help="Profundidade da análise do Stockfish (maior = mais preciso, mas mais lento)"
-        )
-
-        if st.button("🧪 Testar Stockfish"):
-            try:
-                with chess.engine.SimpleEngine.popen_uci(stockfish_path) as engine:
-                    st.success("✅ Stockfish funcionando corretamente!")
-                    info = engine.id
-                    st.info(f"Versão: {info.get('name', 'Desconhecida')}")
-            except Exception as e:
-                st.error(f"❌ Erro no Stockfish: {str(e)}")
-
     with tab3:
         st.markdown("### 🎮 Configurações de Jogo")
 
@@ -945,18 +899,6 @@ GROQ_API_KEY={groq_key}
 
         # Analysis settings
         st.markdown("#### 📊 Configurações de Análise")
-
-        auto_analysis = st.checkbox(
-            "Análise automática após partidas",
-            value=False,
-            help="Executa análise automática com Stockfish após cada partida"
-        )
-
-        analysis_depth = st.slider(
-            "Profundidade da análise automática:",
-            5, 20, 12, 1,
-            help="Profundidade da análise automática (se habilitada)"
-        )
 
         save_analysis = st.checkbox(
             "Salvar resultados da análise",

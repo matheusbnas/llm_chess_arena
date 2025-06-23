@@ -320,7 +320,7 @@ def main():
             st.warning("Nenhum jogo encontrado neste confronto.")
             return
         file, game = st.sidebar.selectbox(
-            "Jogo:", games, format_func=lambda x: x[0], key="game")
+            "Jogo:", games, format_func=lambda x: x[0], key="game_selector")
         moves = list(game.mainline_moves())
         move_history = get_move_history(game)
         max_moves = len(moves)
