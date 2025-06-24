@@ -5,6 +5,8 @@ import re
 import time
 from datetime import datetime
 from .models import ModelManager
+import streamlit as st
+from src.ui_components import UIComponents
 
 
 class GameEngine:
@@ -233,6 +235,78 @@ class GameEngine:
         # Set result
         result = board.result()
         game.headers["Result"] = result
+
+        return {
+            "pgn": str(game),
+            "result": result,
+            "moves": move_count,
+            "white": white_model,
+            "black": black_model,
+            "board": board,
+            "game": game
+        }
+
+    def play_game_realtime(self, white_model: str, black_model: str, opening: str = "1. e4", max_moves: int = 200, ui: UIComponents = None, sleep_time: float = 1.0) -> dict:
+        """
+        Joga uma partida entre dois modelos, mostrando o tabuleiro em tempo real no Streamlit.
+        """
+        board = chess.Board()
+        game = chess.pgn.Game()
+        node = game
+
+        # Set up game headers
+        game.headers["White"] = white_model
+        game.headers["Black"] = black_model
+        game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
+        game.headers["Event"] = "LLM Chess Arena"
+
+        # Play opening move
+        opening_move = opening.split()[-1]
+        try:
+            move = board.parse_san(opening_move)
+            board.push(move)
+            node = node.add_variation(move)
+        except ValueError:
+            move = board.parse_san("e4")
+            board.push(move)
+            node = node.add_variation(move)
+
+        last_move = opening
+        move_count = 0
+
+        # Espaço dinâmico para o tabuleiro
+        board_placeholder = st.empty()
+        if ui is None:
+            ui = UIComponents()
+
+        # Game loop
+        while not board.is_game_over() and move_count < max_moves:
+            current_model = black_model if board.turn == chess.BLACK else white_model
+            color = "black" if board.turn == chess.BLACK else "white"
+
+            # Get move from current model
+            move = self.get_ai_move(board, current_model, last_move=last_move)
+
+            if move:
+                board.push(move)
+                node = node.add_variation(move)
+                last_move = board.san(move)
+                move_count += 1
+
+                # Atualiza o tabuleiro em tempo real
+                with board_placeholder:
+                    ui.display_board(board)
+                time.sleep(sleep_time)
+            else:
+                break
+
+        # Set result
+        result = board.result()
+        game.headers["Result"] = result
+
+        # Mostra tabuleiro final
+        with board_placeholder:
+            ui.display_board(board)
 
         return {
             "pgn": str(game),
