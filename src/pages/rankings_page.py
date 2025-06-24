@@ -18,7 +18,7 @@ def show_rankings(db, analyzer, ui):
 
         if rankings:
             # Display rankings table
-            rankings_df = pd.DataFrame(rankings)
+            rankings_df = pd.DataFrame(list(rankings.values()))
             rankings_df = rankings_df.sort_values(
                 'elo', ascending=False).reset_index(drop=True)
             rankings_df.index += 1

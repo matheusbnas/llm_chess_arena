@@ -27,8 +27,8 @@ from src.pages.human_vs_llm_page import show_human_vs_llm
 from src.pages.analysis_page import show_game_analysis
 from src.pages.rankings_page import show_rankings
 from src.pages.settings_page import show_settings
+from src.pgn_importer import import_pgns_to_db
 
-# Page config
 st.set_page_config(
     page_title="LLM Chess Arena",
     page_icon="♟️",
@@ -116,6 +116,12 @@ def main():
     lichess_api = LichessAPI()
     db = GameDatabase()
     ui = UIComponents()
+
+    # Importar PGNs das pastas para o banco de dados (apenas se houver novas)
+    base_path = os.getcwd()
+    imported_count = import_pgns_to_db(base_path, db)
+    if imported_count > 0:
+        st.success(f"{imported_count} partidas PGN importadas das pastas!")
 
     # Header
     st.markdown('<h1 class="main-header">♟️ LLM Chess Arena</h1>',

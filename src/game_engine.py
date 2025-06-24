@@ -288,14 +288,19 @@ class GameEngine:
             move = self.get_ai_move(board, current_model, last_move=last_move)
 
             if move:
+                san_move = board.san(move)  # Obter SAN antes de push
                 board.push(move)
                 node = node.add_variation(move)
-                last_move = board.san(move)
+                last_move = san_move
                 move_count += 1
 
                 # Atualiza o tabuleiro em tempo real
                 with board_placeholder:
-                    ui.display_board(board)
+                    if move:
+                        highlight = [move.from_square, move.to_square]
+                        ui.display_board(board, highlight_squares=highlight)
+                    else:
+                        ui.display_board(board)
                 time.sleep(sleep_time)
             else:
                 break

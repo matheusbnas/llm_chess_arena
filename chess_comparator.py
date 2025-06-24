@@ -278,7 +278,6 @@ def on_game_change():
 
 
 def main():
-    st.set_page_config(page_title="LLM Chess Arena Dashboard", layout="wide")
     st.markdown("""
         <style>
         body, .main {background-color: #222c36;}
