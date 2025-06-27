@@ -1,5 +1,10 @@
 // API configuration
 const getApiUrl = () => {
+  // In development, use empty string to leverage Vite proxy
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  
   // In webcontainer, we need to use the current host
   if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
@@ -11,6 +16,11 @@ const getApiUrl = () => {
 };
 
 const getWsUrl = () => {
+  // In development, use empty string to leverage Vite proxy
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  
   // In webcontainer, we need to use the current host
   if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
