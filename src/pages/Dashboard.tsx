@@ -128,7 +128,7 @@ export default function Dashboard() {
               Results by Model
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData.modelResults}>
+              <BarChart data={chartData.modelResults || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="model" />
                 <YAxis />
@@ -150,7 +150,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={chartData.winRateData}
+                  data={chartData.winRateData || []}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -159,7 +159,7 @@ export default function Dashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {chartData.winRateData.map((entry: any, index: number) => (
+                  {(chartData.winRateData || []).map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
