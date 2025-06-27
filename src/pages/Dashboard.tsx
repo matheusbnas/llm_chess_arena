@@ -122,13 +122,13 @@ export default function Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Results by Model */}
-        {chartData?.modelResults && (
+        {chartData?.modelResults && Array.isArray(chartData.modelResults) && chartData.modelResults.length > 0 && (
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Results by Model
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData.modelResults || []}>
+              <BarChart data={chartData.modelResults}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="model" />
                 <YAxis />
@@ -142,7 +142,7 @@ export default function Dashboard() {
         )}
 
         {/* Win Rate Distribution */}
-        {chartData?.winRateData && (
+        {chartData?.winRateData && Array.isArray(chartData.winRateData) && chartData.winRateData.length > 0 && (
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Win Rate Distribution
@@ -150,7 +150,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={chartData.winRateData || []}
+                  data={chartData.winRateData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -159,7 +159,7 @@ export default function Dashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {(chartData.winRateData || []).map((entry: any, index: number) => (
+                  {chartData.winRateData.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
