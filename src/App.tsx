@@ -5,7 +5,6 @@ import Dashboard from './pages/Dashboard'
 import Arena from './pages/Arena'
 import Analysis from './pages/Analysis'
 import Rankings from './pages/Rankings'
-import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -15,7 +14,6 @@ function App() {
         <Route path="/arena" element={<Arena />} />
         <Route path="/analysis" element={<Analysis />} />
         <Route path="/rankings" element={<Rankings />} />
-        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>
   )
