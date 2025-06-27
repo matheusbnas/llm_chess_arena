@@ -1,0 +1,9 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Humano"]
+[Black "GPT-4o"]
+[Result "*"]
+
+1. e4 Nh6 { Exemplo de explicação da LLM para o lance Nh6. } 2. Nf3 *

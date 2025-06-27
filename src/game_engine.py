@@ -34,59 +34,53 @@ class GameEngine:
                     break
 
     def get_ai_move(self, board: chess.Board, model_name: str, difficulty: str = "Advanced",
-                    last_move: str = None, max_retries: int = 3) -> Optional[chess.Move]:
-        """Get a move from an AI model"""
-
+                    last_move: str = None, max_retries: int = 3):
+        """Get a move and explanation from an AI model"""
         model = self.model_manager.get_model(model_name)
         if not model:
-            return None
-
+            return None, None
         color = "white" if board.turn == chess.WHITE else "black"
         prompt = self.model_manager.get_chess_prompt(color)
         chain = prompt | model
-
-        # Prepare game context
         game_context = self._prepare_game_context(board, last_move)
-
         for attempt in range(max_retries):
             try:
-                # Get model response
                 response = chain.invoke({"input": game_context})
-                move_text = response.content.strip()
-
-                # Extract move from response
-                extracted_move = self._extract_move(move_text)
-
-                if extracted_move:
-                    # Validate move with judge if available
-                    if self.judge_model:
-                        validated_move = self._validate_move_with_judge(
-                            extracted_move, board, attempt > 0
-                        )
-                        if validated_move:
-                            try:
-                                move = board.parse_san(validated_move)
-                                return move
-                            except ValueError:
-                                continue
-                    else:
-                        # Direct validation
-                        try:
-                            move = board.parse_san(extracted_move)
-                            return move
-                        except ValueError:
-                            continue
-
+                resposta_texto = response.content.strip() if hasattr(
+                    response, 'content') else str(response)
+                move = self._extract_move_from_response(resposta_texto, board)
+                explicacao = self._extract_explanation_from_response(
+                    resposta_texto)
+                if move:
+                    return move, explicacao
             except Exception as e:
                 print(f"Error getting move from {model_name}: {e}")
                 continue
-
-        # Fallback: return a random legal move
         legal_moves = list(board.legal_moves)
         if legal_moves:
-            return legal_moves[0]
+            return legal_moves[0], "(Fallback: lance aleatório)"
+        return None, None
 
+    def _extract_move_from_response(self, resposta, board):
+        match = re.search(r'My move:\s*["\']?([^\n"\']+)["\']?', resposta)
+        if match:
+            move_san = match.group(1).strip()
+            try:
+                return board.parse_san(move_san)
+            except Exception:
+                return None
         return None
+
+    def _extract_explanation_from_response(self, resposta):
+        match = re.search(
+            r'Explica[cç][aã]o:?[\s\-]*([\s\S]+)', resposta, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        # fallback: pega tudo depois do My move
+        parts = resposta.split('My move:')
+        if len(parts) > 1:
+            return parts[1].strip()
+        return resposta.strip()
 
     def _prepare_game_context(self, board: chess.Board, last_move: str = None) -> str:
         """Prepare the game context for the AI model"""
@@ -219,7 +213,8 @@ class GameEngine:
             color = "black" if board.turn == chess.BLACK else "white"
 
             # Get move from current model
-            move = self.get_ai_move(board, current_model, last_move=last_move)
+            move, explicacao = self.get_ai_move(
+                board, current_model, last_move=last_move)
 
             if move:
                 board.push(move)
@@ -285,7 +280,8 @@ class GameEngine:
             color = "black" if board.turn == chess.BLACK else "white"
 
             # Get move from current model
-            move = self.get_ai_move(board, current_model, last_move=last_move)
+            move, explicacao = self.get_ai_move(
+                board, current_model, last_move=last_move)
 
             if move:
                 san_move = board.san(move)  # Obter SAN antes de push

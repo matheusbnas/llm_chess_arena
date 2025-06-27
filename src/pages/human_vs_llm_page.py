@@ -40,7 +40,7 @@ def show_human_vs_llm(model_manager, game_engine, ui):
         )
 
         if st.button("🎮 Novo Jogo", type="primary"):
-            from app import initialize_human_game
+            from src.human_game_utils import initialize_human_game
             initialize_human_game(
                 opponent_model, player_color, difficulty, time_control)
 
@@ -53,11 +53,11 @@ def show_human_vs_llm(model_manager, game_engine, ui):
                 st.rerun()
 
             if st.button("💾 Salvar Partida"):
-                from app import save_human_game
+                from src.human_game_utils import save_human_game
                 save_human_game()
 
             if st.button("🤖 Dica da IA"):
-                from app import show_ai_hint
+                from src.human_game_utils import show_ai_hint
                 show_ai_hint()
 
     with col2:
@@ -73,7 +73,14 @@ def show_human_vs_llm(model_manager, game_engine, ui):
             """, unsafe_allow_html=True)
 
             # Board
-            ui.display_board(game['board'], key="human_game_board")
+            highlight = []
+            if game.get('move_history'):
+                last_move = game['move_history'][-1]
+                if 'from_square' in last_move and 'to_square' in last_move:
+                    highlight = [last_move['from_square'],
+                                 last_move['to_square']]
+            ui.display_board(
+                game['board'], key="human_game_board", highlight_squares=highlight)
 
             # Move input
             if game['board'].turn == (chess.WHITE if game['player_color'] == "Brancas" else chess.BLACK):
@@ -86,18 +93,27 @@ def show_human_vs_llm(model_manager, game_engine, ui):
                         "Digite seu lance (ex: e4, Nf3):",
                         key="move_input"
                     )
+                    human_explanation = st.text_area(
+                        "Explique seu lance (opcional):",
+                        key="human_explanation"
+                    )
 
                 with col_move2:
                     if st.button("▶️ Jogar Lance"):
                         if move_input:
-                            from app import make_human_move
-                            make_human_move(move_input)
+                            from src.human_game_utils import make_human_move
+                            make_human_move(move_input, human_explanation)
+                            if human_explanation:
+                                st.info(f"Sua explicação: {human_explanation}")
 
             else:
                 st.markdown("### 🤖 IA está pensando...")
                 if st.button("⏭️ Processar Lance da IA"):
-                    from app import make_ai_move
-                    make_ai_move(game['opponent'], model_manager, game_engine)
+                    from src.human_game_utils import make_ai_move
+                    explanation = make_ai_move(
+                        game['opponent'], model_manager, game_engine)
+                    if explanation:
+                        st.info(f"Explicação da LLM: {explanation}")
 
             # Move history
             st.markdown("### 📝 Histórico de Lances")
