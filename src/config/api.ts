@@ -18,7 +18,7 @@ const getApiUrl = () => {
 const getWsUrl = () => {
   // In development, use empty string to leverage Vite proxy
   if (import.meta.env.DEV) {
-    return '';
+    return '/ws';
   }
   
   // In webcontainer, we need to use the current host
