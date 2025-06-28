@@ -153,7 +153,17 @@ def main():
     if selected == "🏠 Dashboard":
         show_dashboard(db, analyzer, ui)
     elif selected == "⚔️ Arena de Batalha":
-        show_battle_arena(model_manager, game_engine, db, ui)
+        # Create wrapper functions that will be called only when needed
+        def tournament_wrapper(*args, **kwargs):
+            start_tournament(*args, **kwargs)
+            
+        def battle_wrapper(*args, **kwargs):
+            start_individual_battle(*args, **kwargs)
+        
+        # Pass the wrapper functions instead of direct references
+        show_battle_arena(model_manager, game_engine, db, ui, 
+                         start_tournament_func=tournament_wrapper, 
+                         start_individual_battle_func=battle_wrapper)
     elif selected == "🎯 Jogar vs LLM":
         show_human_vs_llm(model_manager, game_engine, ui)
     elif selected == "📊 Análise de Partidas":
