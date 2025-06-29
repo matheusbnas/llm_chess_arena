@@ -44,6 +44,13 @@ def show_settings(model_manager, lichess_api, db):
             key="groq_key"
         )
 
+        claude_key = st.text_input(
+            "Claude API Key:",
+            type="password",
+            value=os.getenv("CLAUDE_API_KEY", ""),
+            key="claude_key"
+        )
+
         if st.button("💾 Salvar Chaves de API"):
             # Save API keys to .env file
             env_content = f"""
@@ -51,6 +58,7 @@ OPENAI_API_KEY={openai_key}
 GOOGLE_API_KEY={google_key}
 DEEPSEEK_API_KEY={deepseek_key}
 GROQ_API_KEY={groq_key}
+CLAUDE_API_KEY={claude_key}
 """
             with open('.env', 'w') as f:
                 f.write(env_content)

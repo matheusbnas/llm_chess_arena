@@ -13,6 +13,7 @@ from typing import Dict, List, Tuple, Optional
 import asyncio
 import time
 from streamlit_option_menu import option_menu
+from dotenv import load_dotenv
 
 # Import modules
 from src.models import ModelManager
@@ -28,6 +29,8 @@ from src.pages.analysis_page import show_game_analysis
 from src.pages.rankings_page import show_rankings
 from src.pages.settings_page import show_settings
 from src.pgn_importer import import_pgns_to_db
+
+load_dotenv()
 
 st.set_page_config(
     page_title="LLM Chess Arena",

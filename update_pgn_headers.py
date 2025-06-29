@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime
+import chess.pgn
 
 def update_pgn_headers(directory):
     """
@@ -109,3 +110,33 @@ if __name__ == "__main__":
     print(f"Updated {updated} PGN files with proper Event, Date, and Round headers.")
     if errors > 0:
         print(f"Encountered {errors} errors during processing.")
+    
+    # Count PGN files
+    base_path = os.getcwd()
+    pgn_count = 0
+    pgn_files = []
+
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if file.endswith('.pgn'):
+                pgn_count += 1
+                pgn_files.append(os.path.join(root, file))
+
+    print(f"Total PGN files found: {pgn_count}")
+    for path in pgn_files:
+        print(path)
+    
+    # Count total number of games in all PGN files
+    total_games = 0
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if file.endswith('.pgn'):
+                file_path = os.path.join(root, file)
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    while True:
+                        game = chess.pgn.read_game(f)
+                        if game is None:
+                            break
+                        total_games += 1
+
+    print(f"Total de partidas (jogos) em todos os arquivos .pgn: {total_games}")

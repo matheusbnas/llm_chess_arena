@@ -42,61 +42,61 @@ class LichessAPI:
         return None
     
     def import_user_games(self, username: str, max_games: int = 100, 
-                         rated: bool = True, time_class: str = None) -> List[Dict[str, Any]]:
+                     rated: bool = True, time_class: str = None) -> List[Dict[str, Any]]:
         """Import games from a Lichess user"""
-        
+
         params = {
             'max': min(max_games, 300),  # Lichess API limit
             'rated': 'true' if rated else 'false',
             'format': 'pgn'
         }
-        
+
         if time_class:
             params['perfType'] = time_class
-        
-        try:
-            response = self.session.get(
-                f"{self.base_url}/games/user/{username}",
-                params=params,
-                stream=True
-            )
-            
-            if response.status_code != 200:
-                print(f"Error: {response.status_code}")
-                return []
-            
-            games = []
-            current_pgn = ""
-            
-            for line in response.iter_lines(decode_unicode=True):
-                if line.strip():
-                    current_pgn += line + "\n"
-                else:
-                    if current_pgn.strip():
-                        # Parse the PGN
-                        game = chess.pgn.read_game(StringIO(current_pgn))
-                        if game:
-                            game_data = self._extract_game_data(game, current_pgn)
-                            if game_data:
-                                games.append(game_data)
-                        current_pgn = ""
-                
-                if len(games) >= max_games:
-                    break
-            
-            # Process last game if exists
-            if current_pgn.strip():
-                game = chess.pgn.read_game(StringIO(current_pgn))
-                if game:
-                    game_data = self._extract_game_data(game, current_pgn)
-                    if game_data:
-                        games.append(game_data)
-            
-            return games
-            
-        except Exception as e:
-            print(f"Error importing games: {e}")
+
+        response = self.session.get(
+            f"{self.base_url}/games/user/{username}",
+            params=params,
+            stream=True
+        )
+
+        if response.status_code != 200:
+            print(f"Error: {response.status_code}")
             return []
+
+        games = []
+        current_pgn = ""
+
+        for line in response.iter_lines():
+            if line is None:
+                continue
+
+            if isinstance(line, bytes):
+                line = line.decode('utf-8')
+
+            if line.strip():
+                current_pgn += line + "\n"
+            else:
+                if current_pgn.strip():
+                    game = chess.pgn.read_game(StringIO(current_pgn))
+                    if game:
+                        game_data = self._extract_game_data(game, current_pgn)
+                        if game_data:
+                            games.append(game_data)
+                    current_pgn = ""
+
+            if len(games) >= max_games:
+                break
+
+        # Process last game if exists
+        if current_pgn.strip():
+            game = chess.pgn.read_game(StringIO(current_pgn))
+            if game:
+                game_data = self._extract_game_data(game, current_pgn)
+                if game_data:
+                    games.append(game_data)
+
+        return games
     
     def _extract_game_data(self, game: chess.pgn.Game, pgn_text: str) -> Optional[Dict[str, Any]]:
         """Extract relevant data from a chess game"""

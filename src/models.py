@@ -13,7 +13,13 @@ class ModelManager:
     """Manages all available LLM models and their configurations"""
     
     def __init__(self):
-        self.models = {}
+        self.models = {
+            "openai": os.getenv("OPENAI_API_KEY"),
+            "google": os.getenv("GOOGLE_API_KEY"),
+            "deepseek": os.getenv("DEEPSEEK_API_KEY"),
+            "groq": os.getenv("GROQ_API_KEY"),
+            "claude": os.getenv("CLAUDE_API_KEY"),
+        }
         self.model_configs = {}
         self._initialize_models()
     
@@ -162,3 +168,10 @@ class ModelManager:
             return "Groq"
         else:
             return "Unknown"
+    
+    # Implemente aqui a lógica para usar o Claude em partidas, por exemplo:
+    def play_with_model(self, model_name: str):
+        if model_name == "claude":
+            # chamada para API do Claude
+            pass
+        # ... outros modelos ...
