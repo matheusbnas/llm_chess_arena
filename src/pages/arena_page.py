@@ -276,17 +276,14 @@ def save_finished_game(game, db):
         game['pgn_game'].headers["Black"] = game['black']
         game['pgn_game'].headers["Result"] = result
         
-        # Get current datetime for filename
-        current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        
-        # Save to PGN file with date in filename
-        pgn_path = f"{folder_name}/{current_datetime}_{game_num}_game.pgn"
+        # Save to PGN file with the format: {game_num}_game.pgn
+        pgn_path = f"{folder_name}/{game_num}_game.pgn"
         with open(pgn_path, "w", encoding="utf-8") as f:
             f.write(str(game['pgn_game']))
         
-        # Also save move history as CSV with date in filename
+        # Also save move history as CSV with the format: {game_num}_moves.csv
         moves_df = pd.DataFrame(game['move_history'])
-        csv_path = f"{folder_name}/{current_datetime}_{game_num}_moves.csv"
+        csv_path = f"{folder_name}/{game_num}_moves.csv"
         moves_df.to_csv(csv_path, index=True)
         
         # Save to database if db is available
@@ -305,14 +302,14 @@ def save_finished_game(game, db):
             }
             db.save_game(game_data)
         
-        st.success(f"✅ Partida salva em {pgn_path} e no banco de dados!")
+        st.success(f"✅ Partida salva em {pgn_path}!")
         
-        # Also provide download links with date in filenames
+        # Also provide download links with appropriate names
         pgn_str = str(game['pgn_game'])
         st.download_button(
             label="📥 Baixar PGN",
             data=pgn_str,
-            file_name=f"{game['white']}_vs_{game['black']}_round{game_num}_{current_datetime}.pgn",
+            file_name=f"{game_num}_game.pgn",
             mime="text/plain"
         )
         
@@ -320,7 +317,7 @@ def save_finished_game(game, db):
         st.download_button(
             label="📥 Baixar CSV dos Movimentos",
             data=csv_str,
-            file_name=f"{game['white']}_vs_{game['black']}_round{game_num}_{current_datetime}.csv",
+            file_name=f"{game_num}_moves.csv",
             mime="text/csv"
         )
         

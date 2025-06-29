@@ -36,12 +36,6 @@ def save_human_game():
     st.success(f"Partida salva em {folder_name}/{game_num}_game.pgn")
 
 
-def show_ai_hint():
-    st.info("Stub: mostrar dica da IA.")
-    # TODO: implementar lógica de dica da IA
-    pass
-
-
 def make_human_move(move_input, human_explanation=None):
     game = st.session_state.human_game
     board = game['board']
