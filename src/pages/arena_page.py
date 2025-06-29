@@ -257,7 +257,6 @@ def save_finished_game(game, db):
     try:
         # Set the result in the PGN
         result = game['board'].result()
-        game['pgn_game'].headers["Result"] = result
         
         # Create folder if it doesn't exist
         folder_name = f"{game['white']} vs {game['black']}"
@@ -267,14 +266,27 @@ def save_finished_game(game, db):
         # Count existing games to determine the next game number
         game_num = len([f for f in os.listdir(folder_name) if f.endswith('.pgn')]) + 1
         
-        # Save to PGN file
-        pgn_path = f"{folder_name}/{game_num}_game.pgn"
+        # Ensure all required PGN headers are set
+        current_date = datetime.now().strftime("%Y.%m.%d")
+        game['pgn_game'].headers["Event"] = "LLM Chess Arena"
+        game['pgn_game'].headers["Site"] = "LLM Chess Arena"
+        game['pgn_game'].headers["Date"] = current_date
+        game['pgn_game'].headers["Round"] = str(game_num)  # Set Round based on game number
+        game['pgn_game'].headers["White"] = game['white']
+        game['pgn_game'].headers["Black"] = game['black']
+        game['pgn_game'].headers["Result"] = result
+        
+        # Get current datetime for filename
+        current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        
+        # Save to PGN file with date in filename
+        pgn_path = f"{folder_name}/{current_datetime}_{game_num}_game.pgn"
         with open(pgn_path, "w", encoding="utf-8") as f:
             f.write(str(game['pgn_game']))
         
-        # Also save move history as CSV
+        # Also save move history as CSV with date in filename
         moves_df = pd.DataFrame(game['move_history'])
-        csv_path = f"{folder_name}/{game_num}_moves.csv"
+        csv_path = f"{folder_name}/{current_datetime}_{game_num}_moves.csv"
         moves_df.to_csv(csv_path, index=True)
         
         # Save to database if db is available
@@ -286,20 +298,21 @@ def save_finished_game(game, db):
                 'pgn': str(game['pgn_game']),
                 'moves': len(game['move_history']),
                 'opening': game.get('opening', ''),
-                'date': datetime.now().isoformat(),
+                'date': datetime.now().isoformat(),  # Use ISO format for database
                 'tournament_id': None,
-                'analysis': {}
+                'analysis': {},
+                'round': game_num  # Also include round in database
             }
             db.save_game(game_data)
         
         st.success(f"✅ Partida salva em {pgn_path} e no banco de dados!")
         
-        # Also provide download links
+        # Also provide download links with date in filenames
         pgn_str = str(game['pgn_game'])
         st.download_button(
             label="📥 Baixar PGN",
             data=pgn_str,
-            file_name=f"{game['white']}_vs_{game['black']}_{game_num}.pgn",
+            file_name=f"{game['white']}_vs_{game['black']}_round{game_num}_{current_datetime}.pgn",
             mime="text/plain"
         )
         
@@ -307,7 +320,7 @@ def save_finished_game(game, db):
         st.download_button(
             label="📥 Baixar CSV dos Movimentos",
             data=csv_str,
-            file_name=f"{game['white']}_vs_{game['black']}_{game_num}_moves.csv",
+            file_name=f"{game['white']}_vs_{game['black']}_round{game_num}_{current_datetime}.csv",
             mime="text/csv"
         )
         
