@@ -137,7 +137,7 @@ def main():
             options=[
                 "🏠 Dashboard",
                 "⚔️ Arena de Batalha",
-                "🎯 Jogar vs LLM",
+                "🎯 Humano vs LLM",
                 "📊 Análise de Partidas",
                 "🏆 Rankings",
                 "⚙️ Configurações",

@@ -6,6 +6,7 @@ import chess
 import time
 import chess.pgn
 import io
+from src.analysis import GameAnalyzer
 
 
 def show_battle_arena(model_manager, game_engine, db, ui, start_tournament_func=None, start_individual_battle_func=None):
@@ -255,7 +256,9 @@ def save_finished_game(game, db):
     try:
         # Set the result in the PGN
         result = game['board'].result()
-        
+        analyzer = GameAnalyzer()
+        opening_name = analyzer._get_opening_name(game['pgn_game'])
+
         # Create folder if it doesn't exist
         folder_name = f"{game['white']} vs {game['black']}"
         if not os.path.exists(folder_name):
@@ -272,6 +275,7 @@ def save_finished_game(game, db):
         game['pgn_game'].headers["Round"] = str(game_num)  # Set Round based on game number
         game['pgn_game'].headers["White"] = game['white']
         game['pgn_game'].headers["Black"] = game['black']
+        game['pgn_game'].headers["Opening"] = opening_name
         game['pgn_game'].headers["Result"] = result
         
         # Save to PGN file with the format: {game_num}_game.pgn
@@ -294,7 +298,6 @@ def save_finished_game(game, db):
                 'moves': len(game['move_history']),
                 'opening': game.get('opening', ''),
                 'date': datetime.now().isoformat(),  # Use ISO format for database
-                'tournament_id': None,
                 'analysis': {},
                 'round': game_num  # Also include round in database
             }

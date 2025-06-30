@@ -276,7 +276,12 @@ def show_settings(model_manager, lichess_api, db):
             root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
             removed = db.sync_filesystem_and_database(root_path=root_path)
             db.recalculate_all_stats_and_elo()
-            st.success(f"Banco de dados atualizado! {removed} partidas removidas por não existirem mais como arquivos. Estatísticas e ELO recalculados.")
+            db.fill_opening_and_analysis()
+            db.update_avg_accuracy()
+            st.success(
+                f"Banco de dados atualizado! {removed} partidas removidas por não existirem mais como arquivos. "
+                "Estatísticas, ELO, aberturas e análises recalculados."
+            )
 
         # Data management
         st.markdown("#### 🗂️ Gerenciamento de Dados")
@@ -302,7 +307,9 @@ def show_settings(model_manager, lichess_api, db):
                 import_data = json.load(uploaded_file)
                 success = db.import_data(import_data)
                 if success:
-                    st.success("✅ Dados importados com sucesso!")
+                    db.fill_opening_and_analysis()
+                    db.update_avg_accuracy()
+                    st.success("✅ Dados importados e campos recalculados com sucesso!")
                 else:
                     st.error("❌ Erro ao importar dados.")
             except Exception as e:
@@ -311,13 +318,11 @@ def show_settings(model_manager, lichess_api, db):
         # Clear data
         st.markdown("#### 🗑️ Limpeza de Dados")
         st.warning("⚠️ Atenção: As operações abaixo são irreversíveis!")
-        if st.button("🗑️ Limpar Partidas Antigas (>30 dias)", type="secondary"):
-            if st.checkbox("Confirmo que quero deletar partidas antigas"):
-                deleted_count = db.delete_old_games(days=30)
-                st.success(f"✅ {deleted_count} partidas antigas removidas.")
         if st.button("💥 Resetar Banco de Dados", type="secondary"):
             if st.checkbox("Confirmo que quero resetar TODOS os dados"):
                 if st.text_input("Digite 'CONFIRMAR' para prosseguir:") == "CONFIRMAR":
                     db.reset_database()
-                    st.success("✅ Banco de dados resetado com sucesso!")
-                    st.info("🔄 Reinicie a aplicação.")
+                    db.fill_opening_and_analysis()
+                    db.update_avg_accuracy()
+                    st.success("✅ Banco de dados resetado e campos recalculados com sucesso! Estrutura atualizada.")
+                    st.info("🔄 Reinicie a aplicação para garantir que todas as alterações de estrutura sejam aplicadas.")

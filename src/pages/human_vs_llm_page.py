@@ -4,6 +4,7 @@ import chess
 import os
 from datetime import datetime
 import time
+from src.analysis import GameAnalyzer
 
 
 def show_human_vs_llm(model_manager, game_engine, ui, db):
@@ -414,9 +415,10 @@ def make_ai_move(game, model_manager, game_engine):
 def save_finished_game(game, db=None):
     """Save the finished game to a PGN file and database"""
     try:
-        # Set the result in the PGN
         result = game['board'].result()
-        
+        analyzer = GameAnalyzer()
+        opening_name = analyzer._get_opening_name(game['pgn_game'])
+
         # Create folder if it doesn't exist
         folder_name = f"Human_vs_{game['opponent']}"
         if not os.path.exists(folder_name):
@@ -433,6 +435,7 @@ def save_finished_game(game, db=None):
         game['pgn_game'].headers["Round"] = str(game_num)  # Set Round based on game number
         game['pgn_game'].headers["White"] = "Humano" if game['player_color'] == "Brancas" else game['opponent']
         game['pgn_game'].headers["Black"] = game['opponent'] if game['player_color'] == "Brancas" else "Humano"
+        game['pgn_game'].headers["Opening"] = opening_name
         game['pgn_game'].headers["Result"] = result
         
         # Save to PGN file with the format: {game_num}_game.pgn
@@ -455,7 +458,6 @@ def save_finished_game(game, db=None):
                 'moves': len(game['move_history']),
                 'opening': game.get('opening', ''),
                 'date': datetime.now().isoformat(),
-                'tournament_id': None,
                 'analysis': {},
                 'round': game_num
             }

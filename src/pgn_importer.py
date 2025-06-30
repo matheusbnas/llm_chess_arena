@@ -103,31 +103,25 @@ def import_pgns_to_db(base_path: str, db) -> int:
         for g in games:
             # Checa se já existe pelo nome do arquivo e pasta
             cursor.execute(
-                "SELECT 1 FROM games WHERE file_name=? AND folder_name=?",
-                (g['file'], g['folder'])
+                "SELECT 1 FROM games WHERE pgn=?",
+                (g['pgn'],)
             )
             if cursor.fetchone():
                 continue  # já existe, pula
 
             headers = g['game'].headers
-            cursor.execute("""
-                INSERT INTO games (
-                    white, black, result, pgn, moves, opening, date, tournament_id, analysis_data, created_at, file_name, folder_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                headers.get('White', 'Unknown'),
-                headers.get('Black', 'Unknown'),
-                headers.get('Result', ''),
-                g['pgn'],
-                len(list(g['game'].mainline_moves())),
-                headers.get('Opening', ''),
-                headers.get('Date', ''),
-                None,
-                json.dumps({}),
-                datetime.now().isoformat(),
-                g['file'],
-                g['folder']
-            ))
+            white = headers.get('White', 'Unknown')
+            black = headers.get('Black', 'Unknown')
+            result = headers.get('Result', '')
+            pgn = g['pgn']
+            moves = len(list(g['game'].mainline_moves()))
+            opening = headers.get('Opening', '')
+            date = headers.get('Date', '')
+            
+            cursor.execute(
+                "INSERT INTO games (white, black, result, pgn, moves, opening, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (white, black, result, pgn, moves, opening, date)
+            )
             count += 1
             # Pequeno delay para evitar lock em grandes lotes
             if count % 100 == 0:

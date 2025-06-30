@@ -5,7 +5,9 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import chess.pgn
 from io import StringIO
+from src.analysis import GameAnalyzer
 import glob
+import re
 
 class GameDatabase:
     """Manages the SQLite database for storing games and statistics"""
@@ -30,7 +32,6 @@ class GameDatabase:
                     moves INTEGER,
                     opening TEXT,
                     date TEXT,
-                    tournament_id TEXT,
                     white_elo INTEGER DEFAULT 1500,
                     black_elo INTEGER DEFAULT 1500,
                     analysis_data TEXT,
@@ -87,7 +88,7 @@ class GameDatabase:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO games (white, black, result, pgn, moves, opening, date, tournament_id, analysis_data)
+                INSERT INTO games (white, black, result, pgn, moves, opening, date, analysis_data)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 game_data['white'],
@@ -97,7 +98,6 @@ class GameDatabase:
                 game_data.get('moves', 0),
                 game_data.get('opening', ''),
                 game_data.get('date', datetime.now().isoformat()),
-                game_data.get('tournament_id'),
                 json.dumps(game_data.get('analysis', {}))
             ))
             
@@ -216,7 +216,7 @@ class GameDatabase:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, white, black, result, pgn, moves, opening, date, tournament_id, analysis_data
+                SELECT id, white, black, result, pgn, moves, opening, date, analysis_data
                 FROM games ORDER BY created_at DESC
             """)
             
@@ -231,8 +231,7 @@ class GameDatabase:
                     'moves': row[5],
                     'opening': row[6],
                     'date': row[7],
-                    'tournament_id': row[8],
-                    'analysis': json.loads(row[9]) if row[9] else {}
+                    'analysis': json.loads(row[8]) if row[8] else {}
                 })
             
             return games
@@ -517,8 +516,8 @@ class GameDatabase:
                 for game in data.get('games', []):
                     cursor.execute("""
                         INSERT OR REPLACE INTO games 
-                        (id, white, black, result, pgn, moves, opening, date, tournament_id, analysis_data, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (id, white, black, result, pgn, moves, opening, date, analysis_data, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         game.get('id'),
                         game.get('white'),
@@ -528,7 +527,6 @@ class GameDatabase:
                         game.get('moves'),
                         game.get('opening'),
                         game.get('date'),
-                        game.get('tournament_id'),
                         game.get('analysis_data'),
                         game.get('created_at')
                     ))
@@ -721,8 +719,6 @@ class GameDatabase:
         """
         Remove do banco de dados todos os jogos cujos arquivos .pgn não existem mais nas pastas de jogos.
         """
-        import re
-
         # Busca todas as pastas de jogos (ex: Human_vs_*, * vs *)
         game_folders = [f for f in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, f))]
         pattern = re.compile(r"(.+)_vs_(.+)|Human_vs_(.+)")
@@ -732,40 +728,97 @@ class GameDatabase:
         removed_count = 0
 
         for game in all_games:
-            # Descobre a pasta e o nome do arquivo esperado
-            if game['white'] == "Humano":
-                folder = f"Human_vs_{game['black']}"
-            elif game['black'] == "Humano":
-                folder = f"Human_vs_{game['white']}"
+            # Sanitize player names
+            white = _sanitize_folder_name(game['white'])
+            black = _sanitize_folder_name(game['black'])
+
+            if white == "Humano":
+                folder = f"Human_vs_{black}"
+            elif black == "Humano":
+                folder = f"Human_vs_{white}"
             else:
-                folder = f"{game['white']} vs {game['black']}"
+                folder = f"{white} vs {black}"
 
-            # O número do jogo pode ser inferido pelo campo 'date' ou pela ordem, mas aqui tentamos pelo round se existir
-            # Tenta encontrar o arquivo correspondente
-            found = False
             folder_path = os.path.join(root_path, folder)
-            if os.path.exists(folder_path):
-                # Procura por arquivos *_game.pgn
-                pgn_files = glob.glob(os.path.join(folder_path, "*_game.pgn"))
-                for pgn_file in pgn_files:
-                    try:
-                        with open(pgn_file, "r", encoding="utf-8") as f:
-                            content = f.read()
-                    except UnicodeDecodeError:
-                        with open(pgn_file, "r", encoding="latin1") as f:
-                            content = f.read()
-                    # Confirma se o conteúdo do arquivo corresponde ao PGN salvo no banco
-                    if game['pgn'].strip() == content.strip():
-                        found = True
-                        break
-
-            if not found:
-                # Remove do banco de dados
-                with sqlite3.connect(self.db_path) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM games WHERE id = ?", (game['id'],))
-                    removed_count += 1
 
         # Após remover jogos, pode ser interessante recalcular stats e ELO
         self.recalculate_all_stats_and_elo()
         return removed_count
+    
+    def fill_opening_and_analysis(self):
+        """
+        Preenche os campos opening e analysis_data das partidas existentes.
+        """
+        analyzer = GameAnalyzer()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, pgn FROM games")
+            for game_id, pgn in cursor.fetchall():
+                if not pgn:
+                    continue
+                game = chess.pgn.read_game(StringIO(pgn))
+                if not game:
+                    continue
+                # Preenche opening
+                opening = game.headers.get("Opening", "")
+                if not opening:
+                    opening = analyzer._get_opening_name(game)
+                # Preenche analysis_data
+                analysis = analyzer.analyze_game(game)
+                analysis_json = json.dumps(analysis)
+                cursor.execute(
+                    "UPDATE games SET opening = ?, analysis_data = ? WHERE id = ?",
+                    (opening, analysis_json, game_id)
+                )
+            conn.commit()
+
+    def update_avg_accuracy(self):
+        """
+        Recalcula e atualiza o campo avg_accuracy em model_stats para cada modelo.
+        """
+        analyzer = GameAnalyzer()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT model_name FROM model_stats")
+            models = [row[0] for row in cursor.fetchall()]
+            for model in models:
+                cursor.execute("SELECT pgn, white, black FROM games WHERE white = ? OR black = ?", (model, model))
+                accuracies = []
+                for pgn, white, black in cursor.fetchall():
+                    if not pgn:
+                        continue
+                    game = chess.pgn.read_game(StringIO(pgn))
+                    if not game:
+                        continue
+                    analysis = analyzer.analyze_game(game)
+                    if white == model:
+                        accuracies.append(analysis['white_accuracy'])
+                    else:
+                        accuracies.append(analysis['black_accuracy'])
+                avg_acc = sum(accuracies) / len(accuracies) if accuracies else 0
+                cursor.execute("UPDATE model_stats SET avg_accuracy = ? WHERE model_name = ?", (avg_acc, model))
+            conn.commit()
+
+    def export_training_data(self, export_path="training_data.jsonl"):
+        """
+        Exporta os dados da tabela training_data para um arquivo .jsonl.
+        """
+        with sqlite3.connect(self.db_path) as conn, open(export_path, "w", encoding="utf-8") as f:
+            cursor = conn.cursor()
+            cursor.execute("SELECT position_fen, best_move, evaluation, source, rating FROM training_data")
+            for row in cursor.fetchall():
+                data = {
+                    "fen": row[0],
+                    "best_move": row[1],
+                    "evaluation": row[2],
+                    "source": row[3],
+                    "rating": row[4]
+                }
+                f.write(json.dumps(data) + "\n")
+
+def _sanitize_folder_name(name: str) -> str:
+    # Remove barras, backslashes, .., e caracteres não alfanuméricos básicos
+    name = os.path.basename(name)
+    name = re.sub(r'[^a-zA-Z0-9_\- ]', '', name)
+    name = name.replace('..', '')
+    return name.strip()
