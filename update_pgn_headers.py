@@ -1,7 +1,9 @@
 import os
 import re
+import io
 from datetime import datetime
 import chess.pgn
+from src.analysis import GameAnalyzer
 
 def update_pgn_headers(directory):
     """
@@ -86,6 +88,41 @@ def update_pgn_headers(directory):
                         else:
                             content = f'[Round "{round_number}"]\n' + content
                     modified = True
+                
+                # --- Adicionar/corrigir header Opening ---
+                # Tenta ler o primeiro jogo do arquivo
+                try:
+                    pgn_io = io.StringIO(content)
+                    game = chess.pgn.read_game(pgn_io)
+                    if game is not None:
+                        analyzer = GameAnalyzer()
+                        opening_name = analyzer._get_opening_name(game)
+                        if '[Opening ' not in content or '[Opening "?"]' in content or '[Opening ""]' in content:
+                            # Se já existe, substitui; senão, adiciona após Event/Date/Round
+                            if '[Opening ' in content:
+                                content = re.sub(r'\[Opening "[^"]*"\]', f'[Opening "{opening_name}"]', content)
+                            else:
+                                # Tenta inserir após [Event], [Date] ou [Round]
+                                insert_after = None
+                                for tag in ['[Round ', '[Date ', '[Event ']:
+                                    idx = content.find(tag)
+                                    if idx != -1:
+                                        insert_after = tag
+                                        break
+                                if insert_after:
+                                    # Encontra a linha e insere após
+                                    lines = content.splitlines()
+                                    for i, line in enumerate(lines):
+                                        if line.startswith(insert_after):
+                                            lines.insert(i+1, f'[Opening "{opening_name}"]')
+                                            break
+                                    content = '\n'.join(lines)
+                                else:
+                                    # Se não encontrou nenhum, adiciona no início
+                                    content = f'[Opening "{opening_name}"]\n' + content
+                            modified = True
+                except Exception as e:
+                    print(f"Erro ao detectar abertura em {filepath}: {e}")
                 
                 # Write updated content back if modified
                 if modified:

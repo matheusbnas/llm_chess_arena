@@ -273,9 +273,9 @@ def save_finished_game(game, db):
         game['pgn_game'].headers["Site"] = "LLM Chess Arena"
         game['pgn_game'].headers["Date"] = current_date
         game['pgn_game'].headers["Round"] = str(game_num)  # Set Round based on game number
+        game['pgn_game'].headers["Opening"] = opening_name
         game['pgn_game'].headers["White"] = game['white']
         game['pgn_game'].headers["Black"] = game['black']
-        game['pgn_game'].headers["Opening"] = opening_name
         game['pgn_game'].headers["Result"] = result
         
         # Save to PGN file with the format: {game_num}_game.pgn

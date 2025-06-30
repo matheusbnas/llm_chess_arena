@@ -2,6 +2,7 @@
 [Site "LLM Chess Arena"]
 [Date "2025.06.30"]
 [Round "1"]
+[Opening "Other"]
 [White "Claude-3-Opus"]
 [Black "GPT-4o"]
 [Result "0-1"]

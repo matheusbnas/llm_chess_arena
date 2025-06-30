@@ -2,6 +2,7 @@
 [Site "?"]
 [Date "2025.06.28"]
 [Round "5"]
+[Opening "Nimzo-Larsen Attack"]
 [White "Gemini-Pro"]
 [Black "GPT-4o"]
 [Result "0-1"]

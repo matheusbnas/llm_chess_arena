@@ -2,6 +2,7 @@
 [Site "LLM Chess Arena"]
 [Date "2025.06.29"]
 [Round "1"]
+[Opening "King's Pawn"]
 [White "GPT-4-Turbo"]
 [Black "GPT-4o"]
 [Result "0-1"]

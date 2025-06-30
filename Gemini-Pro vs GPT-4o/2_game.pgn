@@ -2,6 +2,7 @@
 [Site "?"]
 [Date "2025.06.28"]
 [Round "2"]
+[Opening "Queen's Pawn"]
 [White "Gemini-Pro"]
 [Black "GPT-4o"]
 [Result "0-1"]

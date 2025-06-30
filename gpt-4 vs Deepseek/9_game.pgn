@@ -2,6 +2,7 @@
 [Site "?"]
 [Date "2025.06.29"]
 [Round "9"]
+[Opening "King's Pawn"]
 [White "gpt-4"]
 [Black "Deepseek"]
 [Result "*"]

@@ -2,6 +2,7 @@
 [Site "?"]
 [Date "2025.06.29"]
 [Round "10"]
+[Opening "Van Geet Opening"]
 [White "GPT-4o"]
 [Black "Gemini-Pro"]
 [Result "0-1"]
