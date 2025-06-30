@@ -13,7 +13,7 @@ def get_secret_or_env(key):
 
 
 def read_env_keys(keys):
-    # Caminho absoluto para o .env na raiz do1 projeto
+    # Caminho absoluto para o .env na raiz do projeto
     env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
     env_vars = {k: "" for k in keys}
     try:
@@ -96,38 +96,39 @@ def show_settings(model_manager, lichess_api, db):
         st.markdown("### 🤖 Configuração dos Modelos")
         st.markdown("#### 🔑 Chaves de API")
 
+        # Os campos de senha SEMPRE aparecem vazios!
         openai_key = st.text_input(
             "OpenAI API Key:",
             type="password",
-            value=env_keys["OPENAI_API_KEY"],
+            value="",
             key="openai_key"
         )
         google_key = st.text_input(
             "Google API Key:",
             type="password",
-            value=env_keys["GOOGLE_API_KEY"],
+            value="",
             key="google_key"
         )
         deepseek_key = st.text_input(
             "DeepSeek API Key:",
             type="password",
-            value=env_keys["DEEPSEEK_API_KEY"],
+            value="",
             key="deepseek_key"
         )
         groq_key = st.text_input(
             "Groq API Key:",
             type="password",
-            value=env_keys["GROQ_API_KEY"],
+            value="",
             key="groq_key"
         )
         claude_key = st.text_input(
             "Claude API Key:",
             type="password",
-            value=env_keys["CLAUDE_API_KEY"],
+            value="",
             key="claude_key"
         )
 
-        st.info("As chaves são lidas automaticamente do ambiente, secrets ou do arquivo .env. Não são salvas pelo dashboard.")
+        st.info("As chaves são lidas automaticamente do ambiente, secrets ou do arquivo .env. Não são salvas pelo dashboard. Para alterar, preencha e salve temporariamente.")
 
         st.markdown("#### Status das Chaves de API:")
         for k, v in env_keys.items():
@@ -203,6 +204,8 @@ def show_settings(model_manager, lichess_api, db):
         lichess_token = st.text_input(
             "Token do Lichess:",
             type="password",
+            value="",
+            key="lichess_token",
             help="Obtenha em https://lichess.org/account/oauth/token"
         )
         if st.button("🔗 Conectar ao Lichess"):
