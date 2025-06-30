@@ -274,12 +274,11 @@ def show_settings(model_manager, lichess_api, db):
         if st.button("Atualizar banco de dados (sincronizar arquivos e recalcular estatísticas/ELO)"):
             # Caminho raiz do projeto (ajuste se necessário)
             root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-            removed = db.sync_filesystem_and_database(root_path=root_path)
-            db.recalculate_all_stats_and_elo()
+            total_imported = db.sync_filesystem_and_database(root_path=root_path)
             db.fill_opening_and_analysis()
             db.update_avg_accuracy()
             st.success(
-                f"Banco de dados atualizado! {removed} partidas removidas por não existirem mais como arquivos. "
+                f"Banco de dados atualizado! {total_imported} partidas importadas dos arquivos .pgn. "
                 "Estatísticas, ELO, aberturas e análises recalculados."
             )
 

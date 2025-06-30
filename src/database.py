@@ -86,10 +86,9 @@ class GameDatabase:
         """Save a game to the database e já atualiza o ELO"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
             cursor.execute("""
                 INSERT INTO games (white, black, result, pgn, moves, opening, date, analysis_data)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 game_data['white'],
                 game_data['black'],
@@ -100,11 +99,10 @@ class GameDatabase:
                 game_data.get('date', datetime.now().isoformat()),
                 json.dumps(game_data.get('analysis', {}))
             ))
-            
             game_id = cursor.lastrowid
 
-            # Atualiza estatísticas dos modelos
-            self._update_model_stats(game_data['white'], game_data['black'], game_data['result'])
+            # Atualiza estatísticas dos modelos usando o mesmo cursor
+            self._update_model_stats(game_data['white'], game_data['black'], game_data['result'], cursor)
 
             # --- NOVO: Atualiza ELO e histórico ---
             K = 32
@@ -158,58 +156,54 @@ class GameDatabase:
             conn.commit()
             return game_id
     
-    def _update_model_stats(self, white: str, black: str, result: str):
+    def _update_model_stats(self, white: str, black: str, result: str, cursor):
         """Update model statistics after a game"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # Initialize models if they don't exist
-            for model in [white, black]:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO model_stats (model_name) VALUES (?)
-                """, (model,))
-            
-            # Update white player stats
-            if result == "1-0":
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, wins = wins + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (white,))
-            elif result == "0-1":
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, losses = losses + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (white,))
-            else:  # Draw
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, draws = draws + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (white,))
-            
-            # Update black player stats
-            if result == "0-1":
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, wins = wins + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (black,))
-            elif result == "1-0":
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, losses = losses + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (black,))
-            else:  # Draw
-                cursor.execute("""
-                    UPDATE model_stats 
-                    SET games_played = games_played + 1, draws = draws + 1, last_updated = CURRENT_TIMESTAMP
-                    WHERE model_name = ?
-                """, (black,))
-            
-            conn.commit()
+        # NÃO abra nova conexão aqui, use apenas o cursor recebido!
+        # Initialize models if they don't exist
+        for model in [white, black]:
+            cursor.execute("""
+                INSERT OR IGNORE INTO model_stats (model_name) VALUES (?)
+            """, (model,))
+        
+        # Update white player stats
+        if result == "1-0":
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, wins = wins + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (white,))
+        elif result == "0-1":
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, losses = losses + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (white,))
+        else:  # Draw
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, draws = draws + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (white,))
+        
+        # Update black player stats
+        if result == "0-1":
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, wins = wins + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (black,))
+        elif result == "1-0":
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, losses = losses + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (black,))
+        else:  # Draw
+            cursor.execute("""
+                UPDATE model_stats 
+                SET games_played = games_played + 1, draws = draws + 1, last_updated = CURRENT_TIMESTAMP
+                WHERE model_name = ?
+            """, (black,))
     
     def get_all_games(self) -> List[Dict[str, Any]]:
         """Get all games from the database"""
@@ -717,34 +711,90 @@ class GameDatabase:
         
     def sync_filesystem_and_database(self, root_path="."):
         """
-        Remove do banco de dados todos os jogos cujos arquivos .pgn não existem mais nas pastas de jogos.
+        Limpa o banco de dados e recarrega todos os jogos a partir dos arquivos .pgn presentes nas pastas de jogos.
         """
         # Busca todas as pastas de jogos (ex: Human_vs_*, * vs *)
         game_folders = [f for f in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, f))]
         pattern = re.compile(r"(.+)_vs_(.+)|Human_vs_(.+)")
 
-        # Coleta todos os jogos existentes no banco
-        all_games = self.get_all_games()
-        removed_count = 0
+        # Limpa todas as tabelas relacionadas a jogos
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM games")
+            cursor.execute("DELETE FROM model_stats")
+            cursor.execute("DELETE FROM elo_history")
+            conn.commit()
 
-        for game in all_games:
-            # Sanitize player names
-            white = _sanitize_folder_name(game['white'])
-            black = _sanitize_folder_name(game['black'])
+        # Busca todas as pastas de jogos (ex: Human_vs_*, * vs *)
+        game_folders = [f for f in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, f))]
+        total_imported = 0
 
-            if white == "Humano":
-                folder = f"Human_vs_{black}"
-            elif black == "Humano":
-                folder = f"Human_vs_{white}"
-            else:
-                folder = f"{white} vs {black}"
-
+        for folder in game_folders:
             folder_path = os.path.join(root_path, folder)
+            if not os.path.isdir(folder_path):
+                continue
+            # Procura arquivos .pgn na pasta
+            pgn_files = [f for f in os.listdir(folder_path) if f.endswith(".pgn")]
+            for pgn_file in pgn_files:
+                pgn_path = os.path.join(folder_path, pgn_file)
+                try:
+                    with open(pgn_path, "r", encoding="utf-8") as f:
+                        while True:
+                            game = chess.pgn.read_game(f)
+                            if game is None:
+                                break
+                            # Extrai informações básicas
+                            white = game.headers.get("White", "Desconhecido")
+                            black = game.headers.get("Black", "Desconhecido")
+                            result = game.headers.get("Result", "*")
+                            date = game.headers.get("Date", datetime.now().isoformat())
+                            pgn_str = str(game)
+                            moves = len(list(game.mainline_moves()))
+                            opening = game.headers.get("Opening", "")
+                            # Salva no banco
+                            self.save_game({
+                                "white": white,
+                                "black": black,
+                                "result": result,
+                                "pgn": pgn_str,
+                                "moves": moves,
+                                "opening": opening,
+                                "date": date,
+                                "analysis": {}
+                            })
+                            total_imported += 1
+                except UnicodeDecodeError:
+                    # Tenta novamente com latin1/cp1252
+                    with open(pgn_path, "r", encoding="latin1") as f:
+                        while True:
+                            game = chess.pgn.read_game(f)
+                            if game is None:
+                                break
+                            # Extrai informações básicas
+                            white = game.headers.get("White", "Desconhecido")
+                            black = game.headers.get("Black", "Desconhecido")
+                            result = game.headers.get("Result", "*")
+                            date = game.headers.get("Date", datetime.now().isoformat())
+                            pgn_str = str(game)
+                            moves = len(list(game.mainline_moves()))
+                            opening = game.headers.get("Opening", "")
+                            # Salva no banco
+                            self.save_game({
+                                "white": white,
+                                "black": black,
+                                "result": result,
+                                "pgn": pgn_str,
+                                "moves": moves,
+                                "opening": opening,
+                                "date": date,
+                                "analysis": {}
+                            })
+                            total_imported += 1
 
-        # Após remover jogos, pode ser interessante recalcular stats e ELO
+        # Após importar, recalcula stats e ELO
         self.recalculate_all_stats_and_elo()
-        return removed_count
-    
+        return total_imported
+
     def fill_opening_and_analysis(self):
         """
         Preenche os campos opening e analysis_data das partidas existentes.
@@ -815,10 +865,3 @@ class GameDatabase:
                     "rating": row[4]
                 }
                 f.write(json.dumps(data) + "\n")
-
-def _sanitize_folder_name(name: str) -> str:
-    # Remove barras, backslashes, .., e caracteres não alfanuméricos básicos
-    name = os.path.basename(name)
-    name = re.sub(r'[^a-zA-Z0-9_\- ]', '', name)
-    name = name.replace('..', '')
-    return name.strip()
