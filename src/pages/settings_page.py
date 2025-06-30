@@ -270,10 +270,13 @@ def show_settings(model_manager, lichess_api, db):
         with col3:
             st.metric("Tamanho do BD", f"{db_stats['db_size_mb']:.1f} MB")
 
-        # Recalculate stats and ELO
-        if st.button("Recalcular estatísticas e ELO do banco de dados"):
+        # Recalculate stats and ELO, and sincronize with filesystem
+        if st.button("Atualizar banco de dados (sincronizar arquivos e recalcular estatísticas/ELO)"):
+            # Caminho raiz do projeto (ajuste se necessário)
+            root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            removed = db.sync_filesystem_and_database(root_path=root_path)
             db.recalculate_all_stats_and_elo()
-            st.success("Estatísticas e ELO recalculados com sucesso!")
+            st.success(f"Banco de dados atualizado! {removed} partidas removidas por não existirem mais como arquivos. Estatísticas e ELO recalculados.")
 
         # Data management
         st.markdown("#### 🗂️ Gerenciamento de Dados")

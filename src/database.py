@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import chess.pgn
 from io import StringIO
+import glob
 
 class GameDatabase:
     """Manages the SQLite database for storing games and statistics"""
@@ -671,3 +672,100 @@ class GameDatabase:
                     now
                 ))
             conn.commit()
+    
+    def get_opening_stats_from_db(self):
+        """
+        Retorna estatísticas de performance por abertura diretamente do banco.
+        Para cada abertura: número de partidas, taxa de vitória das brancas, taxa de vitória das pretas, taxa de empate, média de lances.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    opening, 
+                    COUNT(*) as games_played,
+                    SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) as white_wins,
+                    SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) as black_wins,
+                    SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) as draws,
+                    AVG(moves) as avg_game_length
+                FROM games
+                WHERE opening IS NOT NULL AND opening != ''
+                GROUP BY opening
+                ORDER BY games_played DESC
+            """)
+            data = []
+            for row in cursor.fetchall():
+                opening = row[0]
+                games_played = row[1]
+                white_wins = row[2]
+                black_wins = row[3]
+                draws = row[4]
+                avg_game_length = row[5] or 0
+
+                # Taxas em percentual
+                win_rate = (white_wins / games_played) if games_played > 0 else 0.0
+                loss_rate = (black_wins / games_played) if games_played > 0 else 0.0
+                draw_rate = (draws / games_played) if games_played > 0 else 0.0
+
+                data.append({
+                    'opening': opening,
+                    'games_played': games_played,
+                    'win_rate': win_rate,      # Taxa de vitória das brancas
+                    'loss_rate': loss_rate,    # Taxa de vitória das pretas
+                    'draw_rate': draw_rate,    # Taxa de empate
+                    'avg_game_length': round(avg_game_length, 1)
+                })
+            return data
+        
+    def sync_filesystem_and_database(self, root_path="."):
+        """
+        Remove do banco de dados todos os jogos cujos arquivos .pgn não existem mais nas pastas de jogos.
+        """
+        import re
+
+        # Busca todas as pastas de jogos (ex: Human_vs_*, * vs *)
+        game_folders = [f for f in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, f))]
+        pattern = re.compile(r"(.+)_vs_(.+)|Human_vs_(.+)")
+
+        # Coleta todos os jogos existentes no banco
+        all_games = self.get_all_games()
+        removed_count = 0
+
+        for game in all_games:
+            # Descobre a pasta e o nome do arquivo esperado
+            if game['white'] == "Humano":
+                folder = f"Human_vs_{game['black']}"
+            elif game['black'] == "Humano":
+                folder = f"Human_vs_{game['white']}"
+            else:
+                folder = f"{game['white']} vs {game['black']}"
+
+            # O número do jogo pode ser inferido pelo campo 'date' ou pela ordem, mas aqui tentamos pelo round se existir
+            # Tenta encontrar o arquivo correspondente
+            found = False
+            folder_path = os.path.join(root_path, folder)
+            if os.path.exists(folder_path):
+                # Procura por arquivos *_game.pgn
+                pgn_files = glob.glob(os.path.join(folder_path, "*_game.pgn"))
+                for pgn_file in pgn_files:
+                    try:
+                        with open(pgn_file, "r", encoding="utf-8") as f:
+                            content = f.read()
+                    except UnicodeDecodeError:
+                        with open(pgn_file, "r", encoding="latin1") as f:
+                            content = f.read()
+                    # Confirma se o conteúdo do arquivo corresponde ao PGN salvo no banco
+                    if game['pgn'].strip() == content.strip():
+                        found = True
+                        break
+
+            if not found:
+                # Remove do banco de dados
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM games WHERE id = ?", (game['id'],))
+                    removed_count += 1
+
+        # Após remover jogos, pode ser interessante recalcular stats e ELO
+        self.recalculate_all_stats_and_elo()
+        return removed_count

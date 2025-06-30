@@ -418,7 +418,7 @@ def save_finished_game(game, db=None):
         result = game['board'].result()
         
         # Create folder if it doesn't exist
-        folder_name = "Human_vs_LLM"
+        folder_name = f"Human_vs_{game['opponent']}"
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
         

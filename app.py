@@ -156,18 +156,24 @@ def main():
     if selected == "🏠 Dashboard":
         show_dashboard(db, analyzer, ui)
     elif selected == "⚔️ Arena de Batalha":
-        # Create wrapper functions that will be called only when needed
-        def tournament_wrapper(*args, **kwargs):
-            start_tournament(*args, **kwargs)
-            
+        # Create wrapper functions that will be called only when needed   
         def battle_wrapper(*args, **kwargs):
             start_individual_battle(*args, **kwargs)
-        
+        def start_individual_battle(model, opponent, opening=None, realtime_speed=1.0):
+            """
+            Start an individual battle between the selected model and opponent.
+            This function is wrapped to allow passing it to the UI without direct reference.
+            """
+            game_engine.start_individual_battle(
+                model=model,
+                opponent=opponent,
+                opening=opening,
+                realtime_speed=realtime_speed
+            )
         # Pass the wrapper functions instead of direct references
         show_battle_arena(model_manager, game_engine, db, ui, 
-                         start_tournament_func=tournament_wrapper, 
                          start_individual_battle_func=battle_wrapper)
-    elif selected == "🎯 Jogar vs LLM":
+    elif selected == "🎯 Humano vs LLM":
         show_human_vs_llm(model_manager, game_engine, ui, db)
     elif selected == "📊 Análise de Partidas":
         show_game_analysis(db, analyzer, lichess_api, ui)

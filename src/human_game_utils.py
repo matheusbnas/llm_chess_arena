@@ -24,7 +24,7 @@ def save_human_game():
     if not game:
         st.error("Nenhuma partida para salvar.")
         return
-    folder_name = "Human_vs_LLM"
+    folder_name = f"Human_vs_{game['opponent']}"
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
     game_num = len(os.listdir(folder_name)) + 1

@@ -1,9 +1,0 @@
-[Event "LLM Chess Arena"]
-[Site "?"]
-[Date "2025.06.29"]
-[Round "1"]
-[White "Humano"]
-[Black "GPT-4o"]
-[Result "*"]
-
-1. e4 Nh6 { Exemplo de explicação da LLM para o lance Nh6. } 2. Nf3 *

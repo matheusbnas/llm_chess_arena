@@ -37,8 +37,6 @@ def show_battle_arena(model_manager, game_engine, db, ui, start_tournament_func=
             key="opening"
         )
 
-        num_games = st.slider("Número de partidas:", 1, 20, 5)
-
         # Slider para velocidade
         realtime_speed = st.slider(
             "Velocidade dos lances (s)", 0.1, 3.0, 1.0, 0.1, key="realtime_speed")
