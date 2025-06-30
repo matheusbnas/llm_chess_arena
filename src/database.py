@@ -78,22 +78,10 @@ class GameDatabase:
                 )
             """)
             
-            # Tournaments table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS tournaments (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    participants TEXT NOT NULL,
-                    status TEXT DEFAULT 'active',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    completed_at TIMESTAMP
-                )
-            """)
-            
             conn.commit()
     
     def save_game(self, game_data: Dict[str, Any]) -> int:
-        """Save a game to the database"""
+        """Save a game to the database e já atualiza o ELO"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
@@ -113,10 +101,59 @@ class GameDatabase:
             ))
             
             game_id = cursor.lastrowid
-            
-            # Update model statistics
+
+            # Atualiza estatísticas dos modelos
             self._update_model_stats(game_data['white'], game_data['black'], game_data['result'])
-            
+
+            # --- NOVO: Atualiza ELO e histórico ---
+            K = 32
+            def expected_score(rating_a, rating_b):
+                return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+            def update_elo(rating_a, rating_b, score_a):
+                exp_a = expected_score(rating_a, rating_b)
+                return round(rating_a + K * (score_a - exp_a))
+
+            # Busca ELO atual dos modelos
+            cursor.execute("SELECT current_elo FROM model_stats WHERE model_name = ?", (game_data['white'],))
+            white_elo = cursor.fetchone()
+            white_elo = white_elo[0] if white_elo else 1500
+            cursor.execute("SELECT current_elo FROM model_stats WHERE model_name = ?", (game_data['black'],))
+            black_elo = cursor.fetchone()
+            black_elo = black_elo[0] if black_elo else 1500
+
+            # Define resultado numérico
+            if game_data['result'] == "1-0":
+                score_white, score_black = 1, 0
+            elif game_data['result'] == "0-1":
+                score_white, score_black = 0, 1
+            else:
+                score_white, score_black = 0.5, 0.5
+
+            # Calcula novo ELO
+            new_white_elo = update_elo(white_elo, black_elo, score_white)
+            new_black_elo = update_elo(black_elo, white_elo, score_black)
+
+            # Salva histórico de ELO
+            now = datetime.now().isoformat()
+            cursor.execute(
+                "INSERT INTO elo_history (model_name, elo_rating, date, game_id) VALUES (?, ?, ?, ?)",
+                (game_data['white'], new_white_elo, now, game_id)
+            )
+            cursor.execute(
+                "INSERT INTO elo_history (model_name, elo_rating, date, game_id) VALUES (?, ?, ?, ?)",
+                (game_data['black'], new_black_elo, now, game_id)
+            )
+
+            # Atualiza ELO atual em model_stats
+            cursor.execute(
+                "UPDATE model_stats SET current_elo = ?, last_updated = ? WHERE model_name = ?",
+                (new_white_elo, now, game_data['white'])
+            )
+            cursor.execute(
+                "UPDATE model_stats SET current_elo = ?, last_updated = ? WHERE model_name = ?",
+                (new_black_elo, now, game_data['black'])
+            )
+
             conn.commit()
             return game_id
     
@@ -300,15 +337,10 @@ class GameDatabase:
             cursor.execute("SELECT AVG(moves) FROM games WHERE moves > 0")
             avg_game_length = cursor.fetchone()[0] or 0
             
-            # Tournaments completed
-            cursor.execute("SELECT COUNT(*) FROM tournaments WHERE status = 'completed'")
-            tournaments_completed = cursor.fetchone()[0]
-            
             return {
                 'total_games': total_games,
                 'active_models': active_models,
-                'avg_game_length': avg_game_length,
-                'tournaments_completed': tournaments_completed
+                'avg_game_length': avg_game_length
             }
     
     def get_results_by_model(self) -> List[Dict[str, Any]]:
@@ -550,9 +582,92 @@ class GameDatabase:
             cursor.execute("DROP TABLE IF EXISTS model_stats")
             cursor.execute("DROP TABLE IF EXISTS elo_history")
             cursor.execute("DROP TABLE IF EXISTS training_data")
-            cursor.execute("DROP TABLE IF EXISTS tournaments")
             
             conn.commit()
         
         # Reinitialize
         self._initialize_database()
+    
+    def recalculate_all_stats_and_elo(self):
+        """Recalcula estatísticas e ELO de todos os modelos a partir dos jogos existentes"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Limpa model_stats e elo_history
+            cursor.execute("DELETE FROM model_stats")
+            cursor.execute("DELETE FROM elo_history")
+
+            # Busca todos os jogos em ordem de data
+            cursor.execute("SELECT id, white, black, result, date FROM games ORDER BY date, id")
+            games = cursor.fetchall()
+
+            # Inicializa stats e ELO
+            stats = {}
+            elo = {}
+            K = 32
+            START_ELO = 1500
+
+            def expected_score(rating_a, rating_b):
+                return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+            def update_elo(rating_a, rating_b, score_a):
+                exp_a = expected_score(rating_a, rating_b)
+                return round(rating_a + K * (score_a - exp_a))
+
+            for game_id, white, black, result, date in games:
+                for model in [white, black]:
+                    if model not in stats:
+                        stats[model] = {"games_played": 0, "wins": 0, "draws": 0, "losses": 0}
+                    if model not in elo:
+                        elo[model] = START_ELO
+
+                # Atualiza stats
+                stats[white]["games_played"] += 1
+                stats[black]["games_played"] += 1
+                if result == "1-0":
+                    stats[white]["wins"] += 1
+                    stats[black]["losses"] += 1
+                    score_white, score_black = 1, 0
+                elif result == "0-1":
+                    stats[black]["wins"] += 1
+                    stats[white]["losses"] += 1
+                    score_white, score_black = 0, 1
+                else:
+                    stats[white]["draws"] += 1
+                    stats[black]["draws"] += 1
+                    score_white, score_black = 0.5, 0.5
+
+                # Calcula novo ELO
+                new_white_elo = update_elo(elo[white], elo[black], score_white)
+                new_black_elo = update_elo(elo[black], elo[white], score_black)
+
+                # Salva histórico de ELO
+                cursor.execute(
+                    "INSERT INTO elo_history (model_name, elo_rating, date, game_id) VALUES (?, ?, ?, ?)",
+                    (white, new_white_elo, date or datetime.now().isoformat(), game_id)
+                )
+                cursor.execute(
+                    "INSERT INTO elo_history (model_name, elo_rating, date, game_id) VALUES (?, ?, ?, ?)",
+                    (black, new_black_elo, date or datetime.now().isoformat(), game_id)
+                )
+
+                # Atualiza ELO atual
+                elo[white] = new_white_elo
+                elo[black] = new_black_elo
+
+            # Salva stats e ELO final em model_stats
+            now = datetime.now().isoformat()
+            for model in stats:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO model_stats
+                    (model_name, games_played, wins, draws, losses, current_elo, last_updated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    model,
+                    stats[model]["games_played"],
+                    stats[model]["wins"],
+                    stats[model]["draws"],
+                    stats[model]["losses"],
+                    elo[model],
+                    now
+                ))
+            conn.commit()

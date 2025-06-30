@@ -270,6 +270,11 @@ def show_settings(model_manager, lichess_api, db):
         with col3:
             st.metric("Tamanho do BD", f"{db_stats['db_size_mb']:.1f} MB")
 
+        # Recalculate stats and ELO
+        if st.button("Recalcular estatísticas e ELO do banco de dados"):
+            db.recalculate_all_stats_and_elo()
+            st.success("Estatísticas e ELO recalculados com sucesso!")
+
         # Data management
         st.markdown("#### 🗂️ Gerenciamento de Dados")
 

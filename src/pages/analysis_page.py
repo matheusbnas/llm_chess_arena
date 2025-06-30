@@ -77,7 +77,7 @@ def show_game_analysis(db, analyzer, lichess_api, ui):
             if "error" in comparison:
                 st.error(comparison["error"])
             else:
-                # Head-to-head record
+                # Head-to-head record only
                 st.markdown("#### 🥊 Confronto Direto")
                 col1, col2, col3 = st.columns(3)
 
@@ -87,38 +87,6 @@ def show_game_analysis(db, analyzer, lichess_api, ui):
                     st.metric("Empates", comparison['draws'])
                 with col3:
                     st.metric(f"Vitórias {model2}", comparison['model2_wins'])
-
-                # Performance metrics
-                st.markdown("#### 📈 Métricas de Performance")
-
-                metrics_df = pd.DataFrame({
-                    'Métrica': ['Precisão Média', 'Lances por Partida', 'Taxa de Erro', 'Tempo Médio'],
-                    model1: [
-                        f"{comparison['model1_accuracy']:.1f}%",
-                        f"{comparison['model1_avg_moves']:.1f}",
-                        f"{comparison['model1_error_rate']:.1f}%",
-                        f"{comparison['model1_avg_time']:.1f}s"
-                    ],
-                    model2: [
-                        f"{comparison['model2_accuracy']:.1f}%",
-                        f"{comparison['model2_avg_moves']:.1f}",
-                        f"{comparison['model2_error_rate']:.1f}%",
-                        f"{comparison['model2_avg_time']:.1f}s"
-                    ]
-                })
-
-                st.dataframe(metrics_df, use_container_width=True)
-
-                # Performance over time
-                if comparison['performance_over_time']:
-                    fig = px.line(
-                        comparison['performance_over_time'],
-                        x='game_number',
-                        y='accuracy',
-                        color='model',
-                        title="Evolução da Precisão ao Longo do Tempo"
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
 
     with tab3:
         st.markdown("### 🌐 Integração com Lichess")
