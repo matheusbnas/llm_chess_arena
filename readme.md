@@ -1,18 +1,17 @@
 # LLM Chess Arena: Uma Plataforma Avançada para Análise Comparativa de Modelos de Linguagem através do Xadrez
 
-#### Autor: [Seu Nome](https://github.com/seu_usuario)
+#### Autor: [Matheus Bernardes Costa do Nascimento](https://github.com/matheusbnas)
 
-#### Orientador: [Nome do Orientador](https://github.com/orientador)
+#### Orientador: Leonardo Alfredo Forero Mendonza.
 
-#### Instituição: [Nome da Instituição]
+#### Instituição: [PUC-RIO]
 
 ---
 
 Trabalho apresentado como projeto de pesquisa em Inteligência Artificial, focando na análise comparativa de diferentes modelos de linguagem de grande porte (LLMs) através do jogo de xadrez como benchmark cognitivo.
 
-- [Link para o código](https://github.com/seu_usuario/llm-chess-arena)
-- [Link para a demonstração](https://llm-chess-arena.vercel.app)
-- [Documentação da API](./docs/api.md)
+- [Link para o código](https://github.com/matheusbnas/llm_chess_arena)
+- [Link para a demonstração](https://llm-chess-arena.streamlit.app)
 
 ---
 
