@@ -15,7 +15,7 @@ Trabalho apresentado ao curso [BI MASTER](https://ica.ele.puc-rio.br/) como pré
 
 ## Resumo
 
-Este estudo desenvolveu uma plataforma inovadora para análise comparativa de modelos de linguagem de grande porte (LLMs) utilizando o xadrez como domínio de avaliação estratégica. A pesquisa demonstrou que diferentes modelos (GPT-4o, GPT-4, Gemini-Pro, Claude-3-Opus, Claude-3-Sonnet, Deepseek-Chat) apresentam capacidades distintas de raciocínio tático e estratégico quando confrontados em partidas automatizadas. Os resultados revelaram que, embora LLMs não tenham sido projetados especificamente para jogar xadrez, sua performance neste domínio oferece insights valiosos sobre suas capacidades cognitivas gerais. O sistema desenvolvido incluiu torneios automatizados, análise em tempo real, integração com dados do Lichess.org via RAG, e um sistema de ranking ELO dinâmico. Os achados confirmaram que o xadrez serve como um benchmark eficaz para avaliar diferenças qualitativas entre modelos de IA, complementando métricas tradicionais de avaliação.
+Este estudo desenvolveu uma plataforma inovadora para análise comparativa de modelos de linguagem de grande porte (LLMs) utilizando o xadrez como domínio de avaliação estratégica. A pesquisa demonstrou que diferentes modelos (GPT-4o, GPT-4, Gemini-Pro, Claude-3-Opus, Claude-3-Sonnet, Claude-3-haiku, Deepseek-Chat) apresentam capacidades distintas de raciocínio tático e estratégico quando confrontados em partidas automatizadas. Os resultados revelaram que, embora LLMs não tenham sido projetados especificamente para jogar xadrez, sua performance neste domínio oferece insights valiosos sobre suas capacidades cognitivas gerais. O sistema desenvolvido incluiu torneios automatizados, análise em tempo real, integração com dados do Lichess.org via RAG, e um sistema de ranking ELO dinâmico. Os achados confirmaram que o xadrez serve como um benchmark eficaz para avaliar diferenças qualitativas entre modelos de IA, complementando métricas tradicionais de avaliação.
 
 ## Abstract
 
@@ -98,7 +98,7 @@ Backend: Python + Motor de Xadrez
 Integrações:
 ├── OpenAI (GPT-4o, GPT-3.5-turbo)
 ├── Google AI (Gemini-Pro)
-├── Anthropic (Claude-3-Opus)
+├── Anthropic (Claude-3-Opus, Claude-3-Sonnet, Claude-3-haiku)
 ├── DeepSeek (Deepseek-Chat)
 └── Lichess API (dados RAG)
 ```
