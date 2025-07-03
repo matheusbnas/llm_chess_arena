@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import json
 from datetime import datetime
-import src.models as ModelManager   
+from src.models import ModelManager   
 
 def get_secret_or_env(key):
     # Prioriza st.secrets, depois getenv
