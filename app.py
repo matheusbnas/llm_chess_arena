@@ -174,7 +174,7 @@ def main():
         show_battle_arena(model_manager, game_engine, db, ui, 
                          start_individual_battle_func=battle_wrapper)
     elif selected == "🎯 Humano vs LLM":
-        show_human_vs_llm(model_manager, game_engine, ui, db)
+        show_human_vs_llm(model_manager, db, game_engine)
     elif selected == "📊 Análise de Partidas":
         show_game_analysis(db, analyzer, lichess_api, ui)
     elif selected == "🏆 Rankings":

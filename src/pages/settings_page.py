@@ -193,7 +193,7 @@ def show_settings(model_manager, lichess_api, db):
             "🔑 Groq API Key (Llama 3.3, Mixtral)",
             type="password",
             value=get_key_priority("GROQ_API_KEY"),
-            help="Necessária para Llama 3.3-70B, Llama 3.1-8B, Mixtral-8x7B"
+            help="Necessária para Llama 3.3-70B, Llama 3.1-8B"
         )
         claude_key_input = st.text_input(
             "🔑 Claude API Key (Claude 4)",
