@@ -84,6 +84,10 @@ def get_api_key_from_all_sources(input_value, key):
 def show_settings(model_manager, lichess_api, db):
     st.markdown("## ⚙️ Configurações")
 
+    # Inicializa o estado da sessão para as chaves de API se não existir
+    if 'api_keys' not in st.session_state:
+        st.session_state.api_keys = {}
+
     # Flag para mostrar ou ocultar a aba de jogo
     SHOW_GAME_TAB = False  # Altere para True se quiser mostrar
 
@@ -110,67 +114,100 @@ def show_settings(model_manager, lichess_api, db):
         "GROQ_API_KEY",
         "CLAUDE_API_KEY"
     ]
-    # Prioriza secrets, depois .env, depois getenv
-    env_keys = {k: get_secret_or_env(k) for k in model_keys}
-    if not any(env_keys.values()):
-        env_keys = read_env_keys(model_keys)
+
+    # Função auxiliar para obter a chave prioritária
+    def get_key_priority(key):
+        # 1. Primeiro verifica se tem na session state
+        session_value = st.session_state.api_keys.get(key)
+        if session_value:
+            return session_value
+        
+        # 2. Depois verifica no secrets.toml
+        try:
+            secrets_value = st.secrets[key]
+            return secrets_value
+        except Exception:
+            pass
+        
+        # 3. Depois verifica no .env
+        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+        env_value = ""
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(key + "="):
+                        env_value = line.split("=")[1].strip().strip('"').strip("'")
+                        break
+            if env_value:
+                return env_value
+        except Exception:
+            pass
+        
+        # 4. Por último verifica no ambiente
+        return os.getenv(key, "")
 
     with tab1:
         st.markdown("### 🤖 Configuração dos Modelos")
         st.markdown("#### 🔑 Chaves de API")
 
-        st.info(
-            "🔒 As chaves podem ser:\n"
-            "- Digitadas nos campos abaixo (usadas apenas nesta sessão, nunca salvas)\n"
-            "- Definidas no secrets.toml (Streamlit Cloud)\n"
-            "- Definidas no arquivo .env (apenas local)\n\n"
-            "Por padrão, os campos aparecem vazios para segurança."
-        )
+        # Explicação sobre as chaves
+        st.info("""
+        🔒 As chaves de API são necessárias para usar os diferentes modelos de IA disponíveis. 
+        Elas podem ser obtidas de várias formas:
 
+        1. 📝 Digitando diretamente nos campos abaixo (prioridade máxima)
+        2. 🔒 Definidas no arquivo `secrets.toml` (Streamlit Cloud)
+        3. 📁 Definidas no arquivo `.env` local
+        4. 🌐 Definidas como variáveis de ambiente do sistema
+
+        ⚠️ **Importante:**
+        - As chaves digitadas aqui são armazenadas temporariamente durante sua sessão
+        - Nunca compartilhe suas chaves de API com outras pessoas
+        - Mantenha suas chaves em local seguro e atualizadas
+        """)
+
+        # Inputs para cada chave de API com valores prioritários
         openai_key_input = st.text_input(
-            "OpenAI API Key:",
+            "OpenAI API Key",
             type="password",
-            value="",
-            key="openai_key"
+            value=get_key_priority("OPENAI_API_KEY")
         )
         google_key_input = st.text_input(
-            "Google API Key:",
+            "Google API Key",
             type="password",
-            value="",
-            key="google_key"
+            value=get_key_priority("GOOGLE_API_KEY")
         )
         deepseek_key_input = st.text_input(
-            "DeepSeek API Key:",
+            "DeepSeek API Key",
             type="password",
-            value="",
-            key="deepseek_key"
+            value=get_key_priority("DEEPSEEK_API_KEY")
         )
         groq_key_input = st.text_input(
-            "Groq API Key:",
+            "Groq API Key",
             type="password",
-            value="",
-            key="groq_key"
+            value=get_key_priority("GROQ_API_KEY")
         )
         claude_key_input = st.text_input(
-            "Claude API Key:",
+            "Claude API Key",
             type="password",
-            value="",
-            key="claude_key"
+            value=get_key_priority("CLAUDE_API_KEY")
         )
 
-        # Use a função para priorizar input > secrets > .env
-        api_keys = {
-            "OPENAI_API_KEY": get_api_key_from_all_sources(openai_key_input, "OPENAI_API_KEY"),
-            "GOOGLE_API_KEY": get_api_key_from_all_sources(google_key_input, "GOOGLE_API_KEY"),
-            "DEEPSEEK_API_KEY": get_api_key_from_all_sources(deepseek_key_input, "DEEPSEEK_API_KEY"),
-            "GROQ_API_KEY": get_api_key_from_all_sources(groq_key_input, "GROQ_API_KEY"),
-            "CLAUDE_API_KEY": get_api_key_from_all_sources(claude_key_input, "CLAUDE_API_KEY"),
+        # Atualiza o estado da sessão quando as chaves são alteradas
+        st.session_state.api_keys = {
+            "OPENAI_API_KEY": openai_key_input,
+            "GOOGLE_API_KEY": google_key_input,
+            "DEEPSEEK_API_KEY": deepseek_key_input,
+            "GROQ_API_KEY": groq_key_input,
+            "CLAUDE_API_KEY": claude_key_input
         }
 
-        model_manager = ModelManager(api_keys=api_keys)
+        # Cria uma nova instância do ModelManager com as chaves da sessão
+        model_manager = ModelManager(api_keys=st.session_state.api_keys)
 
         st.markdown("#### Status das Chaves de API:")
-        for k, v in api_keys.items():
+        for k, v in st.session_state.api_keys.items():
             if v:
                 st.success(f"{k}: ✅ Presente")
             else:
