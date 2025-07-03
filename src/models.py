@@ -53,16 +53,23 @@ def get_env_var(key):
 
 class ModelManager:
     """Manages all available LLM models and their configurations"""
-    
-    def __init__(self):
-        self.models = {}  # só modelos válidos!
+
+    def __init__(self, api_keys: dict = None):
+        self.models = {}
         self.model_configs = {}
+        self.api_keys = api_keys or {}
         self._initialize_models()
-    
+
+    def _get_key(self, key):
+        # Prioriza o dicionário passado (input), senão busca no ambiente/arquivo
+        if self.api_keys and key in self.api_keys and self.api_keys[key]:
+            return self.api_keys[key]
+        return get_env_var(key)
+
     def _initialize_models(self):
         """Initialize all available models based on API keys"""
         # OpenAI Models
-        openai_key = get_env_var("OPENAI_API_KEY")
+        openai_key = self._get_key("OPENAI_API_KEY")
         if openai_key:
             self.models.update({
                 "GPT-4o": ChatOpenAI(temperature=0.1, model='gpt-4o', api_key=openai_key),
@@ -70,14 +77,14 @@ class ModelManager:
                 "GPT-3.5-Turbo": ChatOpenAI(temperature=0.1, model='gpt-3.5-turbo', api_key=openai_key),
             })
         # Google Models
-        google_key = get_env_var("GOOGLE_API_KEY")
+        google_key = self._get_key("GOOGLE_API_KEY")
         if google_key:
             self.models.update({
                 "Gemini-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-1.5-pro-latest", google_api_key=google_key),
                 "Gemini-1.0-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-1.0-pro", google_api_key=google_key),
             })
         # DeepSeek Models
-        deepseek_key = get_env_var("DEEPSEEK_API_KEY")
+        deepseek_key = self._get_key("DEEPSEEK_API_KEY")
         if deepseek_key:
             self.models.update({
                 "Deepseek-Chat": ChatOpenAI(
@@ -93,15 +100,15 @@ class ModelManager:
                     base_url="https://api.deepseek.com/v1"
                 ),
             })
-        # Groq Models (for judging)
-        groq_key = get_env_var("GROQ_API_KEY")
+        # Groq Models
+        groq_key = self._get_key("GROQ_API_KEY")
         if groq_key:
             self.models.update({
                 "Llama3-70B": ChatGroq(temperature=0, model_name="llama3-70b-8192", groq_api_key=groq_key),
                 "Mixtral-8x7B": ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", groq_api_key=groq_key),
             })
         # Claude (Anthropic)
-        claude_key = get_env_var("CLAUDE_API_KEY")
+        claude_key = self._get_key("CLAUDE_API_KEY")
         if claude_key and CLAUDE_AVAILABLE:
             self.models.update({
                 "Claude-3-Opus": ChatAnthropic(

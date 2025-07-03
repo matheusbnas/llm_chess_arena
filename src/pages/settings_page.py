@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import json
 from datetime import datetime
-
+import src.models as ModelManager   
 
 def get_secret_or_env(key):
     # Prioriza st.secrets, depois getenv
@@ -166,6 +166,8 @@ def show_settings(model_manager, lichess_api, db):
             "GROQ_API_KEY": get_api_key_from_all_sources(groq_key_input, "GROQ_API_KEY"),
             "CLAUDE_API_KEY": get_api_key_from_all_sources(claude_key_input, "CLAUDE_API_KEY"),
         }
+
+        model_manager = ModelManager(api_keys=api_keys)
 
         st.markdown("#### Status das Chaves de API:")
         for k, v in api_keys.items():
