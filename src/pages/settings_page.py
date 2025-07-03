@@ -34,7 +34,7 @@ def read_env_keys(keys):
 
 
 def save_temp_env_keys(keys_dict):
-    """Salva as chaves em um arquivo .env.temp oculto na raiz do projeto."""
+    """Salva as chaves em um arquivo .env.temp oculto na raiz do projeto (apenas local)."""
     env_temp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env.temp'))
     with open(env_temp_path, "w", encoding="utf-8") as f:
         for k, v in keys_dict.items():
@@ -56,6 +56,29 @@ def get_env_var_prioritized(key):
                         return v.strip().strip('"').strip("'")
     # Fallback para o método antigo
     return get_secret_or_env(key) or read_env_keys([key]).get(key, "")
+
+
+def get_api_key_from_all_sources(input_value, key):
+    """
+    Prioridade:
+    1. Valor digitado no input (input_value)
+    2. st.secrets (secrets.toml do Streamlit Cloud)
+    3. .env (apenas local)
+    """
+    if input_value:
+        return input_value
+    try:
+        return st.secrets[key]
+    except Exception:
+        pass
+    # Busca no .env local
+    env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith(f"{key}="):
+                    return line.strip().split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
 
 
 def show_settings(model_manager, lichess_api, db):
@@ -96,42 +119,56 @@ def show_settings(model_manager, lichess_api, db):
         st.markdown("### 🤖 Configuração dos Modelos")
         st.markdown("#### 🔑 Chaves de API")
 
-        # Os campos de senha SEMPRE aparecem vazios!
-        openai_key = st.text_input(
+        st.info(
+            "🔒 As chaves podem ser:\n"
+            "- Digitadas nos campos abaixo (usadas apenas nesta sessão, nunca salvas)\n"
+            "- Definidas no secrets.toml (Streamlit Cloud)\n"
+            "- Definidas no arquivo .env (apenas local)\n\n"
+            "Por padrão, os campos aparecem vazios para segurança."
+        )
+
+        openai_key_input = st.text_input(
             "OpenAI API Key:",
             type="password",
             value="",
             key="openai_key"
         )
-        google_key = st.text_input(
+        google_key_input = st.text_input(
             "Google API Key:",
             type="password",
             value="",
             key="google_key"
         )
-        deepseek_key = st.text_input(
+        deepseek_key_input = st.text_input(
             "DeepSeek API Key:",
             type="password",
             value="",
             key="deepseek_key"
         )
-        groq_key = st.text_input(
+        groq_key_input = st.text_input(
             "Groq API Key:",
             type="password",
             value="",
             key="groq_key"
         )
-        claude_key = st.text_input(
+        claude_key_input = st.text_input(
             "Claude API Key:",
             type="password",
             value="",
             key="claude_key"
         )
 
-        st.info("As chaves são lidas automaticamente do ambiente, secrets ou do arquivo .env. Não são salvas pelo dashboard. Para alterar, preencha e salve temporariamente.")
+        # Use a função para priorizar input > secrets > .env
+        api_keys = {
+            "OPENAI_API_KEY": get_api_key_from_all_sources(openai_key_input, "OPENAI_API_KEY"),
+            "GOOGLE_API_KEY": get_api_key_from_all_sources(google_key_input, "GOOGLE_API_KEY"),
+            "DEEPSEEK_API_KEY": get_api_key_from_all_sources(deepseek_key_input, "DEEPSEEK_API_KEY"),
+            "GROQ_API_KEY": get_api_key_from_all_sources(groq_key_input, "GROQ_API_KEY"),
+            "CLAUDE_API_KEY": get_api_key_from_all_sources(claude_key_input, "CLAUDE_API_KEY"),
+        }
 
         st.markdown("#### Status das Chaves de API:")
-        for k, v in env_keys.items():
+        for k, v in api_keys.items():
             if v:
                 st.success(f"{k}: ✅ Presente")
             else:
@@ -173,7 +210,7 @@ def show_settings(model_manager, lichess_api, db):
                     st.error(
                         f"❌ Erro no modelo {test_model}: {test_result['error']}")
 
-        # Botão para salvar as chaves temporariamente
+        # Botão para salvar as chaves temporariamente (apenas local, não afeta Streamlit Cloud)
         if st.button("💾 Salvar Chaves Temporariamente"):
             # Recupera o token do Lichess já salvo, se existir
             env_temp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env.temp'))
@@ -185,11 +222,11 @@ def show_settings(model_manager, lichess_api, db):
                             lichess_token = line.split("=", 1)[1].strip().strip('"').strip("'")
                             break
             temp_keys = {
-                "OPENAI_API_KEY": openai_key,
-                "GOOGLE_API_KEY": google_key,
-                "DEEPSEEK_API_KEY": deepseek_key,
-                "GROQ_API_KEY": groq_key,
-                "CLAUDE_API_KEY": claude_key,
+                "OPENAI_API_KEY": openai_key_input,
+                "GOOGLE_API_KEY": google_key_input,
+                "DEEPSEEK_API_KEY": deepseek_key_input,
+                "GROQ_API_KEY": groq_key_input,
+                "CLAUDE_API_KEY": claude_key_input,
             }
             if lichess_token:
                 temp_keys["LICHESS_API_TOKEN"] = lichess_token
@@ -214,11 +251,11 @@ def show_settings(model_manager, lichess_api, db):
                 if success:
                     # Salva a chave do Lichess no .env.temp junto com as outras
                     temp_keys = {
-                        "OPENAI_API_KEY": openai_key,
-                        "GOOGLE_API_KEY": google_key,
-                        "DEEPSEEK_API_KEY": deepseek_key,
-                        "GROQ_API_KEY": groq_key,
-                        "CLAUDE_API_KEY": claude_key,
+                        "OPENAI_API_KEY": openai_key_input,
+                        "GOOGLE_API_KEY": google_key_input,
+                        "DEEPSEEK_API_KEY": deepseek_key_input,
+                        "GROQ_API_KEY": groq_key_input,
+                        "CLAUDE_API_KEY": claude_key_input,
                         "LICHESS_API_TOKEN": lichess_token,
                     }
                     save_temp_env_keys(temp_keys)
