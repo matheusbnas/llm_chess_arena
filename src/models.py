@@ -6,7 +6,6 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import time
-import anthropic
 
 # Adicione a importação do Anthropic/Claude
 try:
@@ -68,49 +67,136 @@ class ModelManager:
 
     def _initialize_models(self):
         """Initialize all available models based on API keys"""
-        # OpenAI Models
+        
+        # OpenAI Models - Atualizados para 2025
         openai_key = self._get_key("OPENAI_API_KEY")
         if openai_key:
             self.models.update({
+                # Novos modelos GPT-4.1 (mais recentes)
+                "GPT-4.1": ChatOpenAI(temperature=0.1, model='gpt-4.1', api_key=openai_key),
+                "GPT-4.1-Mini": ChatOpenAI(temperature=0.1, model='gpt-4.1-mini', api_key=openai_key),
+                "GPT-4.1-Nano": ChatOpenAI(temperature=0.1, model='gpt-4.1-nano', api_key=openai_key),
+                # Modelos GPT-4o (ainda disponíveis)
                 "GPT-4o": ChatOpenAI(temperature=0.1, model='gpt-4o', api_key=openai_key),
-                "GPT-4-Turbo": ChatOpenAI(temperature=0.1, model='gpt-4-turbo', api_key=openai_key),
+                "GPT-4o-Mini": ChatOpenAI(temperature=0.1, model='gpt-4o-mini', api_key=openai_key),
+                # GPT-3.5 Turbo (ainda disponível)
                 "GPT-3.5-Turbo": ChatOpenAI(temperature=0.1, model='gpt-3.5-turbo', api_key=openai_key),
             })
-        # Google Models
+        
+        # Google Models - Atualizados para Gemini 2.5
         google_key = self._get_key("GOOGLE_API_KEY")
         if google_key:
             self.models.update({
-                "Gemini-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-1.5-pro-latest", google_api_key=google_key),
-                "Gemini-1.0-Pro": ChatGoogleGenerativeAI(temperature=0.1, model="gemini-1.0-pro", google_api_key=google_key),
+                # Novos modelos Gemini 2.5 (mais recentes)
+                "Gemini-2.5-Flash": ChatGoogleGenerativeAI(
+                    temperature=0.1, 
+                    model="gemini-2.5-flash", 
+                    google_api_key=google_key
+                ),
+                "Gemini-2.5-Pro": ChatGoogleGenerativeAI(
+                    temperature=0.1, 
+                    model="gemini-2.5-pro", 
+                    google_api_key=google_key
+                ),
+                "Gemini-2.5-Flash-Lite": ChatGoogleGenerativeAI(
+                    temperature=0.1, 
+                    model="gemini-2.5-flash-lite", 
+                    google_api_key=google_key
+                ),
+                # Modelos Gemini 1.5 (ainda disponíveis)
+                "Gemini-1.5-Pro": ChatGoogleGenerativeAI(
+                    temperature=0.1, 
+                    model="gemini-1.5-pro", 
+                    google_api_key=google_key
+                ),
+                "Gemini-1.5-Flash": ChatGoogleGenerativeAI(
+                    temperature=0.1, 
+                    model="gemini-1.5-flash", 
+                    google_api_key=google_key
+                ),
             })
-        # DeepSeek Models
+        
+        # DeepSeek Models - Atualizados para R1 e V3
         deepseek_key = self._get_key("DEEPSEEK_API_KEY")
         if deepseek_key:
             self.models.update({
-                "Deepseek-Chat": ChatOpenAI(
+                # Novos modelos DeepSeek R1 e V3
+                "DeepSeek-R1": ChatOpenAI(
+                    temperature=0.1,
+                    model="deepseek-reasoner",
+                    api_key=deepseek_key,
+                    base_url="https://api.deepseek.com/v1"
+                ),
+                "DeepSeek-V3": ChatOpenAI(
                     temperature=0.1,
                     model="deepseek-chat",
                     api_key=deepseek_key,
                     base_url="https://api.deepseek.com/v1"
                 ),
-                "Deepseek-Coder": ChatOpenAI(
+                # Modelos legados (ainda disponíveis)
+                "DeepSeek-Coder": ChatOpenAI(
                     temperature=0.1,
                     model="deepseek-coder",
                     api_key=deepseek_key,
                     base_url="https://api.deepseek.com/v1"
                 ),
             })
-        # Groq Models
+        
+        # Groq Models - Atualizados para Llama 3.3 e modelos mais recentes
         groq_key = self._get_key("GROQ_API_KEY")
         if groq_key:
             self.models.update({
-                "Llama3-70B": ChatGroq(temperature=0, model_name="llama3-70b-8192", groq_api_key=groq_key),
-                "Mixtral-8x7B": ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", groq_api_key=groq_key),
+                # Novos modelos Llama 3.3 (mais recentes)
+                "Llama-3.3-70B": ChatGroq(
+                    temperature=0, 
+                    model_name="llama-3.3-70b-versatile", 
+                    groq_api_key=groq_key
+                ),
+                "Llama-3.1-8B": ChatGroq(
+                    temperature=0, 
+                    model_name="llama-3.1-8b-instant", 
+                    groq_api_key=groq_key
+                ),
+                # Modelos legados (ainda disponíveis)
+                "Llama-3.1-70B": ChatGroq(
+                    temperature=0, 
+                    model_name="llama-3.1-70b-versatile", 
+                    groq_api_key=groq_key
+                ),
+                "Mixtral-8x7B": ChatGroq(
+                    temperature=0, 
+                    model_name="mixtral-8x7b-32768", 
+                    groq_api_key=groq_key
+                ),
             })
-        # Claude (Anthropic)
+        
+        # Claude (Anthropic) - Atualizados para Claude 4
         claude_key = self._get_key("CLAUDE_API_KEY")
         if claude_key and CLAUDE_AVAILABLE:
             self.models.update({
+                # Novos modelos Claude 4 (mais recentes)
+                "Claude-4-Opus": ChatAnthropic(
+                    temperature=0.1,
+                    model_name="claude-4-opus-20250627",
+                    anthropic_api_key=claude_key
+                ),
+                "Claude-4-Sonnet": ChatAnthropic(
+                    temperature=0.1,
+                    model_name="claude-4-sonnet-20250627",
+                    anthropic_api_key=claude_key
+                ),
+                # Modelos Claude 3.5 (ainda disponíveis)
+                "Claude-3.5-Sonnet": ChatAnthropic(
+                    temperature=0.1,
+                    model_name="claude-3-5-sonnet-20241022",
+                    anthropic_api_key=claude_key
+                ),
+                "Claude-3.5-Haiku": ChatAnthropic(
+                    temperature=0.1,
+                    model_name="claude-3-5-haiku-20241022",
+                    anthropic_api_key=claude_key
+                ),
+                # Modelos Claude 3 (legados)
                 "Claude-3-Opus": ChatAnthropic(
                     temperature=0.1,
                     model_name="claude-3-opus-20240229",
@@ -205,7 +291,9 @@ class ModelManager:
             "name": model_name,
             "provider": self._get_provider(model_name),
             "available": model_name in self.get_available_models(),
-            "config": self.model_configs.get(model_name, {})
+            "config": self.model_configs.get(model_name, {}),
+            "pricing_tier": self._get_pricing_tier(model_name),
+            "capabilities": self._get_capabilities(model_name)
         }
     
     def _get_provider(self, model_name: str) -> str:
@@ -213,7 +301,7 @@ class ModelManager:
             return "OpenAI"
         elif "Gemini" in model_name:
             return "Google"
-        elif "Deepseek" in model_name:
+        elif "DeepSeek" in model_name:
             return "DeepSeek"
         elif "Llama" in model_name or "Mixtral" in model_name:
             return "Groq"
@@ -221,3 +309,68 @@ class ModelManager:
             return "Anthropic"
         else:
             return "Unknown"
+    
+    def _get_pricing_tier(self, model_name: str) -> str:
+        """Get pricing tier information for the model"""
+        high_cost_models = ["GPT-4.1", "Claude-4-Opus", "Gemini-2.5-Pro", "DeepSeek-R1"]
+        mid_cost_models = ["GPT-4o", "Claude-4-Sonnet", "Claude-3.5-Sonnet", "Gemini-2.5-Flash"]
+        low_cost_models = ["GPT-4o-Mini", "GPT-3.5-Turbo", "Claude-3-Haiku", "Llama", "Mixtral"]
+        
+        if any(high_model in model_name for high_model in high_cost_models):
+            return "High"
+        elif any(mid_model in model_name for mid_model in mid_cost_models):
+            return "Medium"
+        elif any(low_model in model_name for low_model in low_cost_models):
+            return "Low"
+        else:
+            return "Unknown"
+    
+    def _get_capabilities(self, model_name: str) -> list:
+        """Get model capabilities"""
+        capabilities = []
+        
+        # Multimodal capabilities
+        if any(model in model_name for model in ["GPT-4", "Gemini", "Claude-4", "Claude-3.5"]):
+            capabilities.append("multimodal")
+        
+        # Reasoning capabilities
+        if any(model in model_name for model in ["DeepSeek-R1", "GPT-4.1", "Claude-4-Opus", "Gemini-2.5-Pro"]):
+            capabilities.append("advanced_reasoning")
+        
+        # Coding capabilities
+        if any(model in model_name for model in ["DeepSeek", "Claude-4", "GPT-4", "Gemini-2.5"]):
+            capabilities.append("coding")
+        
+        # Fast inference
+        if any(model in model_name for model in ["Llama", "Mixtral", "GPT-4o-Mini", "Gemini-2.5-Flash"]):
+            capabilities.append("fast_inference")
+        
+        # Long context
+        if any(model in model_name for model in ["Claude", "Gemini", "GPT-4.1"]):
+            capabilities.append("long_context")
+        
+        return capabilities
+    
+    def get_recommended_models(self, use_case: str = "chess") -> Dict[str, str]:
+        """Get recommended models for specific use cases"""
+        recommendations = {
+            "chess": {
+                "best_performance": "Claude-4-Opus",
+                "balanced": "Claude-4-Sonnet",
+                "cost_effective": "GPT-4o-Mini",
+                "reasoning": "DeepSeek-R1"
+            },
+            "coding": {
+                "best_performance": "Claude-4-Opus",
+                "balanced": "DeepSeek-V3",
+                "cost_effective": "DeepSeek-Coder",
+                "reasoning": "DeepSeek-R1"
+            },
+            "general": {
+                "best_performance": "GPT-4.1",
+                "balanced": "GPT-4o",
+                "cost_effective": "GPT-4o-Mini",
+                "multimodal": "Gemini-2.5-Flash"
+            }
+        }
+        return recommendations.get(use_case, recommendations["general"])
