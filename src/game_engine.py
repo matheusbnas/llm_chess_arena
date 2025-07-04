@@ -38,7 +38,8 @@ class GameEngine:
             print("⚠️ No judge model available")
 
     def get_ai_move(self, board: chess.Board, model_name: str, difficulty: str = "Advanced",
-                    last_move: str = None, max_retries: int = 3, use_fallback: bool = False):
+                    last_move: str = None, max_retries: int = 3, use_fallback: bool = False,
+                    wait_seconds: int = 5):
         """
         Get a move and explanation from an AI model
         
@@ -49,6 +50,7 @@ class GameEngine:
             last_move: Last move played
             max_retries: Maximum number of retries
             use_fallback: Whether to use random move fallback if LLM fails
+            wait_seconds: Time to wait between retry cycles
             
         Returns:
             tuple: (chess.Move, explanation) or (None, error_message)
@@ -80,51 +82,53 @@ class GameEngine:
         print(f"🤖 Consultando modelo LLM '{model_name}' para obter lance...")
         
         # Tenta obter lance do modelo LLM
-        for attempt in range(max_retries):
-            try:
-                print(f"   Tentativa {attempt + 1}/{max_retries}")
-                
-                # Chama o modelo LLM
-                response = chain.invoke({"input": game_context})
-                
-                # Processa a resposta
-                response_text = response.content.strip() if hasattr(response, 'content') else str(response)
-                
-                print(f"   Resposta do modelo: {response_text[:100]}...")
-                
-                # Extrai o lance da resposta
-                move = self._extract_move_from_response(response_text, board)
-                explanation = self._extract_explanation_from_response(response_text)
-                
-                if move and move in board.legal_moves:
-                    print(f"✅ Lance válido obtido do modelo LLM: {board.san(move)}")
-                    return move, explanation
-                else:
-                    print(f"   ❌ Lance inválido na tentativa {attempt + 1}: {move}")
+        attempt_cycle = 0
+        while True:
+            for attempt in range(max_retries):
+                attempt_global = attempt_cycle * max_retries + attempt + 1
+                try:
+                    print(f"   Tentativa {attempt + 1}/{max_retries} (global: {attempt_global})")
                     
-            except Exception as e:
-                print(f"   ❌ Erro na tentativa {attempt + 1}: {str(e)}")
-                continue
-        
-        # Se chegou aqui, o modelo LLM falhou em todas as tentativas
-        error_msg = f"❌ FALHA CRÍTICA: Modelo LLM '{model_name}' falhou em {max_retries} tentativas!"
-        print(error_msg)
-        
-        if use_fallback:
-            # Usa fallback apenas se explicitamente solicitado
-            legal_moves = list(board.legal_moves)
-            if legal_moves:
-                fallback_move = legal_moves[0]
-                fallback_explanation = f"(⚠️ FALLBACK: Modelo LLM falhou - usando lance aleatório: {board.san(fallback_move)})"
-                print(f"⚠️ Usando fallback: {board.san(fallback_move)}")
-                if 'st' in globals():
-                    st.warning(fallback_explanation)
-                return fallback_move, fallback_explanation
-        
-        # Se não usa fallback ou não há lances legais, retorna erro
-        if 'st' in globals():
-            st.error(error_msg)
-        return None, error_msg
+                    # Chama o modelo LLM
+                    response = chain.invoke({"input": game_context})
+                    
+                    # Processa a resposta
+                    response_text = response.content.strip() if hasattr(response, 'content') else str(response)
+                    
+                    print(f"   Resposta do modelo: {response_text[:100]}...")
+                    
+                    # Extrai o lance da resposta
+                    move = self._extract_move_from_response(response_text, board)
+                    explanation = self._extract_explanation_from_response(response_text)
+                    
+                    if move and move in board.legal_moves:
+                        print(f"✅ Lance válido obtido do modelo LLM: {board.san(move)}")
+                        return move, explanation
+                    else:
+                        print(f"   ❌ Lance inválido na tentativa {attempt + 1}: {move}")
+                        
+                except Exception as e:
+                    print(f"   ❌ Erro na tentativa {attempt + 1}: {str(e)}")
+                    continue
+            
+            error_msg = f"⚠️ Modelo LLM '{model_name}' falhou em {max_retries} tentativas consecutivas. Aguardando {wait_seconds}s e tentando novamente..."
+            print(error_msg)
+            if 'st' in globals():
+                st.warning(error_msg)
+            
+            if use_fallback:
+                # Se fallback autorizado, tenta lance aleatório antes de esperar
+                legal_moves = list(board.legal_moves)
+                if legal_moves:
+                    fallback_move = legal_moves[0]
+                    fallback_explanation = f"(⚠️ FALLBACK TEMPORÁRIO: usando lance aleatório enquanto aguardamos nova tentativa)"
+                    print(f"⚠️ Fallback temporário usado: {board.san(fallback_move)}")
+                    if 'st' in globals():
+                        st.info(fallback_explanation)
+                    return fallback_move, fallback_explanation
+            
+            time.sleep(wait_seconds)
+            attempt_cycle += 1
 
     def _extract_move_from_response(self, response_text: str, board: chess.Board) -> Optional[chess.Move]:
         """Extract chess move from model response"""

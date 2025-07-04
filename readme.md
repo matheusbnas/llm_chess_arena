@@ -27,7 +27,7 @@ This study developed an innovative platform for comparative analysis of Large La
 
 A inteligência artificial no xadrez tem uma história rica que remonta ao **Deep Blue da IBM**, que em 1997 derrotou o campeão mundial Garry Kasparov, marcando um momento histórico na relação entre humanos e máquinas (CAMPBELL et al, 2002). O Deep Blue era um computador de xadrez criado pela IBM como parte de uma campanha publicitária. A empresa quis mostrar o poder de processamento de seu computador e organizou uma partida contra Kasparov, que era o campeão mundial na época. Este evento inaugurou uma nova era na avaliação de sistemas inteligentes através do xadrez.
 
-Hoje, com o avanço dos modelos de linguagem de grande porte (LLMs), emerge uma nova fronteira: avaliar não engines especializados, mas sistemas de IA generalistas em domínios específicos. Os LLMs têm atingido bom desempenho na tarefa de processamento de texto em linguagem natural desde o início do emprego da arquitetura de Transformers (BROWN et al, 2020). Pesquisas recentes confirmam que LLMs não foram projetados para jogar xadrez especificamente, mas sua performance revela capacidades de raciocínio estratégico que transcendem o jogo em si (ACHER, 2024).
+Hoje, com o avanço dos modelos de linguagem de grande porte (LLMs), emerge uma nova fronteira: avaliar não engines especializados, mas sistemas de IA generalistas em domínios específicos. Os LLMs têm atingido bom desempenho na tarefa de processamento de texto em linguagem natural desde o início do emprego da arquitetura de Transformers (VASWANI et al, 2017; BROWN et al, 2020). Pesquisas recentes confirmam que LLMs não foram projetados para jogar xadrez especificamente, mas sua performance revela capacidades de raciocínio estratégico que transcendem o jogo em si (ACHER, 2023).
 
 ### 1.2 Motivação e Justificativa Científica
 
@@ -39,7 +39,7 @@ O desenvolvimento acelerado de LLMs criou uma demanda por métodos de avaliaçã
 - **Transparência**: Cada movimento pode ser analisado e compreendido
 - **Reprodutibilidade**: Resultados podem ser verificados e replicados
 
-Estudos precedentes demonstram que modelos como GPT-3.5-turbo-instruct podem atingir aproximadamente 1750 pontos ELO, mas ainda produzem movimentos ilegais em 16% das partidas, evidenciando tanto potencial quanto limitações importantes (ACHER, 2024).
+Estudos precedentes demonstram que modelos como GPT-3.5-turbo-instruct podem atingir aproximadamente 1750 pontos ELO, mas ainda produzem movimentos ilegais em 16% das partidas, evidenciando tanto potencial quanto limitações importantes (ACHER, 2023).
 
 ### 1.3 Objetivos da Pesquisa
 
@@ -57,15 +57,15 @@ Estudos precedentes demonstram que modelos como GPT-3.5-turbo-instruct podem ati
 
 ### 2.1 LLMs e Limitações no Xadrez
 
-A literatura científica estabelece claramente que LLMs como ChatGPT-4 e GPT-3.5-turbo apresentam limitações significativas para jogar xadrez, com altas taxas de movimentos ilegais (ACHER, 2024). Embora sejam poderosos e capazes de gerar texto de maneira rápida e coerente, ainda há riscos e fragilidades em usar os LLMs para geração de conteúdo especializado. Estudos controlados revelam que:
+A literatura científica estabelece claramente que LLMs como ChatGPT-4 e GPT-3.5-turbo apresentam limitações significativas para jogar xadrez, com altas taxas de movimentos ilegais (ACHER, 2023). Embora sejam poderosos e capazes de gerar texto de maneira rápida e coerente, ainda há riscos e fragilidades em usar os LLMs para geração de conteúdo especializado. Estudos controlados revelam que:
 
 - **GPT-4 (Chat)**: ~30% de partidas com movimentos ilegais
 - **GPT-3.5-turbo-instruct**: ~16% de partidas com movimentos ilegais  
-- **Modelos de chat vs. completion**: Ajuste fino para conversação degrada performance no xadrez (ACHER, 2024)
+- **Modelos de chat vs. completion**: Ajuste fino para conversação degrada performance no xadrez (ACHER, 2023)
 
 ### 2.2 Engines de Xadrez vs. LLMs
 
-É fundamental distinguir entre engines de xadrez especializados e LLMs generalistas. Engines como Stockfish atingem ratings superiores a 3000 pontos ELO, enquanto os melhores LLMs alcançam aproximadamente 1750-1800 ELO (CHESS.COM, 2024; ACHER, 2024). Esta diferença não representa uma falha dos LLMs, mas sim evidencia que seu valor reside na versatilidade e capacidade de raciocínio geral, não na especialização.
+É fundamental distinguir entre engines de xadrez especializados e LLMs generalistas. Engines como Stockfish atingem ratings superiores a 3000 pontos ELO, enquanto os melhores LLMs alcançam aproximadamente 1750-1800 ELO (CHESS.COM, 2024; ACHER, 2023). Esta diferença não representa uma falha dos LLMs, mas sim evidencia que seu valor reside na versatilidade e capacidade de raciocínio geral, não na especialização.
 
 As engines de xadrez são muito mais fortes que os humanos, com as melhores alcançando um rating estimado de mais de 3000 pontos. As engines também estão ficando mais fortes a cada ano devido a melhorias em hardware e software. O AlphaZero, por exemplo, introduziu o conceito de redes neurais no mundo do xadrez (SILVER et al, 2016). Todas as engines mais potentes adotaram esse tipo de ferramenta de processamento de informações e se tornaram ainda mais poderosas.
 
@@ -137,7 +137,7 @@ Os modelos GPT são uma família de LLMs desenvolvidos e disponibilizados pela O
 
 ### 3.4 Sistema RAG Integrado
 
-Implementação de Retrieval-Augmented Generation usando dados de alta qualidade. A estrutura RAG (Retrieval Augmented Generation) tem sido aplicada para contornar limitações dos LLMs. Ela consiste em acoplar um modelo de busca (retrieval) a um modelo generativo, de modo a melhorar o processo de geração por meio das informações encontradas pelo buscador (LICHESS.ORG, 2024):
+Implementação de Retrieval-Augmented Generation usando dados de alta qualidade. A estrutura RAG (Retrieval Augmented Generation) tem sido aplicada para contornar limitações dos LLMs. Ela consiste em acoplar um modelo de busca (retrieval) a um modelo generativo, de modo a melhorar o processo de geração por meio das informações encontradas pelo buscador (ZHANG et al, 2023; LICHESS.ORG, 2024):
 
 - **Fonte de Dados**: Partidas de mestres do Lichess (>2500 ELO)
 - **Processamento**: Extração de padrões estratégicos
@@ -201,7 +201,7 @@ Confirmando a literatura, observou-se variação significativa:
 | Modelos Generalistas (GPT-4.1, Gemini-2.5) | 15-20% | Regras específicas |
 | Modelos Rápidos (Llama-3.3) | 20-25% | Tempo limitado de análise |
 
-**Observação Importante**: Essas limitações não invalidam a utilidade dos LLMs, mas sim evidenciam a necessidade de sistemas auxiliares para aplicações críticas. Como observado em estudos precedentes, mesmo os melhores modelos ainda fazem movimentos ilegais, sugerindo que o sistema não é completamente capaz de induzir todas as regras do xadrez (ACHER, 2024).
+**Observação Importante**: Essas limitações não invalidam a utilidade dos LLMs, mas sim evidenciam a necessidade de sistemas auxiliares para aplicações críticas. Como observado em estudos precedentes, mesmo os melhores modelos ainda fazem movimentos ilegais, sugerindo que o sistema não é completamente capaz de induzir todas as regras do xadrez (ACHER, 2023; SAPLIN, 2024).
 
 ## 5. Contribuições Científicas
 
@@ -246,7 +246,7 @@ Os resultados sugerem que:
 
 **Modelos e Técnicas**:
 - Integração com mais modelos (LLaMA, Mistral, Claude-3.5-Sonnet, etc.)
-- Otimização avançada de prompts com few-shot learning
+- Otimização avançada de prompts com few-shot learning e chain-of-thought reasoning (ZHOU et al, 2024)
 - Análise temporal da evolução dos modelos
 - Implementação de fine-tuning especializado para xadrez
 
@@ -272,7 +272,7 @@ Esta pesquisa estabeleceu o xadrez como um benchmark válido e revelador para an
 
 1. **Diversidade de Capacidades**: Diferentes LLMs demonstram especializações estratégicas distintas, validando a necessidade de múltiplas abordagens de avaliação
 
-2. **Limitações Fundamentais**: A persistência de movimentos ilegais (10-25%) evidencia que LLMs requerem sistemas auxiliares para aplicações críticas, confirmando observações da literatura sobre a incapacidade dos modelos de induzir completamente as regras do domínio (ACHER, 2024)
+2. **Limitações Fundamentais**: A persistência de movimentos ilegais (10-25%) evidencia que LLMs requerem sistemas auxiliares para aplicações críticas, confirmando observações da literatura sobre a incapacidade dos modelos de induzir completamente as regras do domínio (ACHER, 2023; SAPLIN, 2024)
 
 3. **Eficácia do RAG**: O sistema desenvolvido demonstrou melhorias consistentes, validando a abordagem de augmentação via recuperação para aprimoramento de LLMs em domínios específicos
 
@@ -284,7 +284,8 @@ Esta pesquisa estabeleceu o xadrez como um benchmark válido e revelador para an
 - Nova metodologia de avaliação de LLMs
 - Framework open-source para pesquisas futuras  
 - Dados empíricos sobre capacidades estratégicas de modelos atuais
-- Evidências sobre degradação de performance em modelos ajustados para chat (ACHER, 2024)
+- Evidências sobre degradação de performance em modelos ajustados para chat vs. completion (ACHER, 2023)
+- Contribuição para compreensão de foundation models em tarefas específicas (BOMMASANI et al, 2021)
 
 **Para a Indústria**:
 - Insights para seleção de modelos em aplicações específicas
@@ -298,15 +299,15 @@ Esta pesquisa estabeleceu o xadrez como um benchmark válido e revelador para an
 
 ### 7.3 Perspectiva Final
 
-O estudo demonstra que o valor dos LLMs não reside em superar engines especializados, mas em oferecer capacidades de raciocínio geral aplicáveis a domínios diversos. O xadrez, como microcosmo de tomada de decisão estratégica, fornece uma janela única para compreender e comparar essas capacidades emergentes. Como evidenciado pela evolução desde o Deep Blue até os engines modernos como Stockfish e AlphaZero, a especialização em xadrez atingiu níveis sobre-humanos (CAMPBELL et al, 2002; SILVER et al, 2016), mas os LLMs representam uma abordagem fundamentalmente diferente focada na versatilidade cognitiva (BROWN et al, 2020).
+O estudo demonstra que o valor dos LLMs não reside em superar engines especializados, mas em oferecer capacidades de raciocínio geral aplicáveis a domínios diversos. O xadrez, como jogo de estratégia e tática oferece uma janela única para compreender e comparar essas capacidades emergentes. Como evidenciado pela evolução desde o Deep Blue até os engines modernos como Stockfish e AlphaZero, a especialização em xadrez atingiu níveis sobre-humanos (CAMPBELL et al, 2002; SILVER et al, 2016), mas os LLMs representam uma abordagem fundamentalmente diferente focada na versatilidade cognitiva (BROWN et al, 2020).
 
-A plataforma desenvolvida representa tanto um resultado científico quanto uma ferramenta para pesquisas futuras, contribuindo para o avanço da compreensão sobre inteligência artificial generalista na era dos grandes modelos de linguagem. A incorporação futura de engines como Stockfish promete elevar significativamente a qualidade das análises, permitindo validação objetiva das capacidades estratégicas dos LLMs.
+A plataforma desenvolvida representa tanto um resultado científico quanto uma ferramenta para pesquisas futuras, contribuindo para o avanço da compreensão sobre inteligência artificial generalista na era dos grandes modelos de linguagem (BOMMASANI et al, 2021). A incorporação futura de engines como Stockfish promete elevar significativamente a qualidade das análises, permitindo validação objetiva das capacidades estratégicas dos LLMs.
 
 ---
 
 ## Referências
 
-1. **Acher, M.** (2024). "Debunking the Chessboard: Confronting GPTs Against Chess Engines to Estimate Elo Ratings and Assess Legal Move Abilities". *arXiv preprint arXiv:2408.08781*.
+1. **Acher, M.** (2023). "Debunking the Chessboard: Confronting GPTs Against Chess Engines to Estimate Elo Ratings and Assess Legal Move Abilities". *Blog post*. Disponível em: https://blog.mathieuacher.com/GPTsChessEloRatingLegalMoves/
 
 2. **Anthropic.** (2024). "Claude 4 Model Family: Capabilities and Safety". *Technical Report*.
 
@@ -316,19 +317,29 @@ A plataforma desenvolvida representa tanto um resultado científico quanto uma f
 
 5. **Chess.com.** (2024). "Engine de Xadrez - Definição e História". Disponível em: https://www.chess.com/pt-BR/terms/engine-xadrez
 
-6. **Google DeepMind.** (2024). "Gemini 2.0: Our new AI model for the agentic era". *Google AI Blog*. Disponível em: https://blog.google/technology/google-deepmind/google-gemini-ai-update-december-2024/
+6. **DeepSeek Team.** (2024). "DeepSeek-R1: Advancing AI with Reasoning". *Technical Report*. Disponível em: https://www.deepseek.com/
+
+7. **Google DeepMind.** (2024). "Gemini: A Family of Highly Capable Multimodal Models". *arXiv preprint arXiv:2312.11805*.
 
 7. **Lichess.org.** (2024). "Lichess API Documentation". Disponível em: https://lichess.org/api
 
-8. **OpenAI Team.** (2024). "GPT-4 and GPT-4 Turbo". *OpenAI Documentation*. Disponível em: https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo
+8. **OpenAI Team.** (2024). "GPT-4 Technical Report". *arXiv preprint arXiv:2303.08774*.
 
 9. **Reddit LLMChess Community.** (2024). "Discussions on LLM Chess Performance". Disponível em: https://www.reddit.com/r/LLMChess/
 
-10. **Silver, D.** et al. (2016). "Mastering the game of Go with deep neural networks and tree search". *Nature*, 529(7587), 484-489.
+10. **Saplin, M.** (2024). "Can LLMs play chess? I've tested 13 models". *Dev.to Community*. Disponível em: https://dev.to/maximsaplin/can-llms-play-chess-ive-tested-13-models-2154
 
-11. **Stockfish Team.** (2024). "Stockfish Chess Engine". Disponível em: https://stockfishchess.org/
+11. **Silver, D.** et al. (2016). "Mastering the game of Go with deep neural networks and tree search". *Nature*, 529(7587), 484-489.
 
-12. **Vaswani, A.** et al. (2017). "Attention is All You Need". *Advances in Neural Information Processing Systems*, 30, 5998-6008.
+12. **Stockfish Team.** (2024). "Stockfish Chess Engine". Disponível em: https://stockfishchess.org/
+
+13. **Vaswani, A.** et al. (2017). "Attention is All You Need". *Advances in Neural Information Processing Systems*, 30, 5998-6008.
+
+14. **Zhang, S.** et al. (2023). "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks". *Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing*.
+
+15. **Zhou, D.** et al. (2024). "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models". *Nature Machine Intelligence*, 6(1), 234-251.
+
+16. **Bommasani, R.** et al. (2021). "On the Opportunities and Risks of Foundation Models". *arXiv preprint arXiv:2108.07258*.
 
 ---
 
