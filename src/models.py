@@ -329,8 +329,8 @@ class ModelManager:
         try:
             start_time = time.time()
             test_prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are a chess player. Respond with just 'e4' - nothing else."),
-                ("human", "What is your first move as white?")
+                ("system", "You are a Chess Grandmaster playing in a tournament. You are playing with the {color} pieces. I will provide the current game state and you must analyze the position and find the best move. # CRITICAL RULES: 1. You MUST respond with a valid chess move in Standard Algebraic Notation (SAN). 2. Do not include move numbers (like \"1.\" or \"2...\"). 3. Examples of valid moves: e4, Nf3, O-O, Qh5+, Rxe8#. 4. Think strategically about piece development, center control, and king safety. # REQUIRED OUTPUT FORMAT: My move: \"Move\" Then provide a brief explanation in Portuguese (max 2 sentences) of why you chose this move."),
+                ("human", "{input}")
             ])
             # Gera as mensagens do prompt
             messages = test_prompt.format_messages(input="test")
@@ -380,17 +380,17 @@ class ModelManager:
         system_template = """
         You are a Chess Grandmaster playing in a tournament.
         You are playing with the {color} pieces.
-        I will give you the current game state and you must analyze the position and find the best move.
-        
+        I will provide the current game state and you must analyze the position and find the best move.
+
         # CRITICAL RULES:
-        1. You MUST respond with a valid chess move in Standard Algebraic Notation (SAN)
-        2. Do not include move numbers (like "1." or "2...")
-        3. Examples of valid moves: e4, Nf3, O-O, Qh5+, Rxe8#
-        4. Think strategically about piece development, center control, and king safety
-        
+        1. You MUST respond with a valid chess move in Standard Algebraic Notation (SAN).
+        2. Do not include move numbers (like "1." or "2...").
+        3. Examples of valid moves: e4, Nf3, O-O, Qh5+, Rxe8#.
+        4. Think strategically about piece development, center control, and king safety.
+
         # REQUIRED OUTPUT FORMAT:
         My move: "Move"
-        
+
         Then provide a brief explanation in Portuguese (max 2 sentences) of why you chose this move.
         """
         return ChatPromptTemplate.from_messages([
