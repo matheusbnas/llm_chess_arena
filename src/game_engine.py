@@ -173,30 +173,32 @@ class GameEngine:
     def _extract_explanation_from_response(self, response_text: str) -> str:
         """Extract explanation from model response"""
         
-        # Remove a parte do lance da explicação
+        # 1) Remover a parte do lance
         explanation = response_text
-        
-        # Remove padrões de lance
         patterns_to_remove = [
-            r'My move:\s*["\']?[^"\']+["\']?',
-            r'move:\s*["\']?[^"\']+["\']?',
-            r'lance:\s*["\']?[^"\']+["\']?',
+            r'My move:\s*["\']?[^"\'\n]+["\']?',
+            r'move:\s*["\']?[^"\'\n]+["\']?',
+            r'lance:\s*["\']?[^"\'\n]+["\']?',
+            r'"?move"?\s*:\s*"[^"\n]+"',
+            r'"?lance"?\s*:\s*"[^"\n]+"'
         ]
-        
         for pattern in patterns_to_remove:
             explanation = re.sub(pattern, '', explanation, flags=re.IGNORECASE)
-        
-        # Limpa a explicação
-        explanation = explanation.strip()
-        
-        # Remove linhas vazias e espaços extras
+
+        # 2) Elimina labels como "Explicação:" ou "Reason:"
+        explanation = re.sub(r'^(Explica[çc]ão|Reason)\s*:\s*', '', explanation, flags=re.IGNORECASE)
+
+        # 3) Limpeza de linhas e espaços
         lines = [line.strip() for line in explanation.split('\n') if line.strip()]
         explanation = ' '.join(lines)
-        
-        # Se a explicação está vazia, retorna um padrão
+
+        # 4) Pega somente as duas primeiras frases para obedecer ao prompt
+        sentences = re.split(r'(?<=[.!?])\s+', explanation)
+        explanation = ' '.join(sentences[:2]).strip()
+
         if not explanation:
             return "Lance estratégico escolhido pelo modelo LLM."
-        
+
         return explanation
 
     def _prepare_game_context(self, board: chess.Board, last_move: str = None) -> str:
