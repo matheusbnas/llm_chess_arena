@@ -53,6 +53,10 @@ Estudos precedentes demonstram que modelos como GPT-3.5-turbo-instruct podem ati
 - Estabelecer sistema de ranking ELO para classificação contínua dos modelos
 - Avaliar impacto do sistema RAG na melhoria de performance
 
+### 1.4 Reconhecimentos e Fonte do Projeto
+
+Este trabalho foi baseado e inspirado no projeto original "LLM Chess Arena" desenvolvido pela **Asimov Academy** (disponível em: https://github.com/asimov-academy/llm_chess_arena). O projeto original forneceu a estrutura fundamental e conceitos iniciais que foram expandidos, modificados e adaptados para os objetivos específicos desta pesquisa acadêmica. Agradecemos à Asimov Academy por disponibilizar o código-fonte aberto que serviu como ponto de partida para este estudo.
+
 ## 2. Fundamentação Teórica
 
 ### 2.1 LLMs e Limitações no Xadrez
