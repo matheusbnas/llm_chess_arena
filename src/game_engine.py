@@ -232,7 +232,15 @@ class GameEngine:
         3. King safety
         4. Tactical opportunities
         5. Positional advantages
-        
+        6. Preserve material: avoid sacrificing high-value pieces (Queen=9, Rook=5, Bishop/Knight=3, Pawn=1) unless it yields a clear forced win.
+        7. Do not leave pieces "en prise" (undefended and capturable) on your turn.
+        8. In the opening, prioritize rapid development (knights before bishops), control of the four central squares (e4, d4, e5, d5), and early castling for king safety.
+        9. In the middlegame, coordinate your pieces and create threats; calculate at least 3 ply (your move, opponent reply, your follow-up) before deciding.
+        10. In the endgame, activate the king and advance passed pawns.
+        11. Prefer moves that improve the evaluation according to standard piece values and positional considerations.
+        12. Only consider queen sacrifices if they lead to checkmate or decisive material/positional gain confirmed in your calculation.
+        13. Provide a concise explanation (in Portuguese, max 2 sentences) outlining the tactical/strategic idea behind the move.
+         
         Respond with your move in the required format.
         """
 

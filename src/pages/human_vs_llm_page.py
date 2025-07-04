@@ -6,7 +6,10 @@ from datetime import datetime
 import time
 from src.analysis import GameAnalyzer
 from src.models import ModelManager
+from src.ui_components import UIComponents
 
+# Global UI instance for board rendering
+ui = UIComponents()
 
 def show_human_vs_llm(model_manager, db, game_engine):
     st.markdown("## Arena de LLMs em Xadrez")
