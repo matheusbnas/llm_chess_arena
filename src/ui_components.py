@@ -5,6 +5,7 @@ import chess.pgn
 from typing import Optional, List, Dict, Any
 import pandas as pd
 from io import StringIO
+import streamlit.components.v1 as components
 
 
 class UIComponents:
@@ -12,6 +13,10 @@ class UIComponents:
 
     def __init__(self):
         self.board_size = 480
+        # CDN URLs para libs JS de tabuleiro
+        self._chessboard_js = "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"
+        self._chessboard_css = "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"
+        self._chess_js = "https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"
 
     def display_board(self, board: chess.Board, flipped: bool = False,
                       key: str = None, highlight_squares: List[int] = None,
@@ -401,3 +406,39 @@ class UIComponents:
         if selected:
             return selected.split(" ", 1)[1]
         return ""
+
+    # ------------------------------------------------------------------
+    # TABULEIRO INTERATIVO (clique-clique)
+    # ------------------------------------------------------------------
+    def display_click_board(self, board: chess.Board, key: str = "click_board") -> Optional[str]:
+        """Mostra tabuleiro interativo e devolve SAN quando usuário faz um lance.
+
+        Retorna:
+            str | None – lance em SAN ou None se nenhum lance efetuado.
+        """
+        fen = board.fen()
+
+        html = f"""
+        <link rel=\"stylesheet\" href=\"{self._chessboard_css}\">
+        <div id=\"board_{key}\" style=\"width: {self.board_size}px\"></div>
+        <script src=\"{self._chess_js}\"></script>
+        <script src=\"{self._chessboard_js}\"></script>
+        <script>
+          const game_{key} = new Chess('{fen}');
+          const board_{key} = Chessboard('board_{key}', {{
+            position: '{fen}',
+            draggable: true,
+            orientation: '{'black' if board.turn == chess.BLACK else 'white'}',
+            onDrop: function(source, target) {{
+              const move = game_{key}.move({{from: source, to: target, promotion: 'q'}});
+              if (move === null) {{
+                return 'snapback';
+              }}
+              const san = move.san;
+              window.parent.postMessage({{isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: san}}, '*');
+            }}
+          }});
+        </script>
+        """
+
+        return components.html(html, height=self.board_size + 30, scrolling=False)

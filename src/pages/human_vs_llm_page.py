@@ -224,108 +224,15 @@ def show_human_vs_llm(model_manager, db, game_engine):
             
             # Input options for player's move
             if is_player_turn and not game['board'].is_game_over():
-                # Handle square selection for interactive board
-                if st.button("🔍 Selecionar Peça no Tabuleiro"):
-                    # Show squares to select
-                    piece_squares = []
-                    for square in chess.SQUARES:
-                        piece = game['board'].piece_at(square)
-                        if piece and piece.color == game['board'].turn:
-                            piece_squares.append(square)
-                    
-                    # Create a grid of buttons for piece selection
-                    if piece_squares:
-                        st.markdown("#### Selecione uma peça:")
-                        cols = st.columns(min(8, len(piece_squares)))
-                        for i, square in enumerate(piece_squares):
-                            piece = game['board'].piece_at(square)
-                            square_name = chess.square_name(square)
-                            col_idx = i % len(cols)
-                            with cols[col_idx]:
-                                if st.button(f"{piece.symbol()} {square_name}", key=f"select_{square_name}"):
-                                    st.session_state.human_game['selected_square'] = square
-                                    # Get legal moves for this piece
-                                    legal_moves = []
-                                    for move in game['board'].legal_moves:
-                                        if move.from_square == square:
-                                            legal_moves.append(move.to_square)
-                                    st.session_state.human_game['legal_moves_for_selected'] = legal_moves
-                                    st.rerun()
-                
-                # If a square is selected, show possible destination squares
-                if game.get('selected_square') is not None:
-                    st.markdown("#### Mover para:")
-                    cols = st.columns(min(8, len(game['legal_moves_for_selected'])))
-                    for i, to_square in enumerate(game['legal_moves_for_selected']):
-                        square_name = chess.square_name(to_square)
-                        col_idx = i % len(cols)
-                        with cols[col_idx]:
-                            if st.button(f"{square_name}", key=f"move_to_{square_name}"):
-                                # Create the move
-                                move = chess.Move(game['selected_square'], to_square)
-                                
-                                # Check if it's a promotion
-                                if game['board'].piece_at(game['selected_square']).piece_type == chess.PAWN:
-                                    if (to_square >= 56 and game['board'].turn == chess.WHITE) or \
-                                       (to_square <= 7 and game['board'].turn == chess.BLACK):
-                                        # It's a promotion, ask for piece
-                                        pieces = {
-                                            "Dama": chess.QUEEN,
-                                            "Torre": chess.ROOK,
-                                            "Bispo": chess.BISHOP,
-                                            "Cavalo": chess.KNIGHT
-                                        }
-                                        promotion = st.radio("Promover para:", list(pieces.keys()))
-                                        move.promotion = pieces[promotion]
-                                
-                                # Ask for an explanation
-                                human_explanation = st.text_area(
-                                    "Explique seu lance (opcional):",
-                                    key="human_explanation_interactive"
-                                )
-                                
-                                if st.button("Confirmar Movimento"):
-                                    # Make the move
-                                    from_square = game['selected_square']
-                                    to_square = to_square
-                                    san_move = game['board'].san(move)
-                                    
-                                    # Push the move to the board
-                                    game['board'].push(move)
-                                    
-                                    # Update PGN
-                                    node = game['current_node'].add_variation(move)
-                                    if human_explanation:
-                                        node.comment = human_explanation
-                                    game['current_node'] = node
-                                    
-                                    # Save to history
-                                    game['move_history'].append({
-                                        'move': san_move,
-                                        'by': 'human',
-                                        'from_square': from_square,
-                                        'to_square': to_square,
-                                        'explanation': human_explanation
-                                    })
-                                    
-                                    # Reset selected square
-                                    game['selected_square'] = None
-                                    game['legal_moves_for_selected'] = []
-                                    
-                                    # Check for checkmate or draw
-                                    if game['board'].is_game_over():
-                                        save_finished_game(game, db)
-                                    # Trigger AI move if auto-play is enabled
-                                    elif game.get('auto_ai_moves', False):
-                                        # Wait for the specified time before AI moves
-                                        time.sleep(game.get('ai_move_speed', 1.0))
-                                        make_ai_move(game, model_manager, game_engine)
-                                        
-                                        # Check for game over after AI move
-                                        if game['board'].is_game_over():
-                                            save_finished_game(game, db)
-                                    
-                                    st.rerun()
+                # Tabuleiro interativo: captura SAN diretamente
+                san = ui.display_click_board(game['board'])
+                # `display_click_board` returns a value only after the user makes a move.
+                # It may initially be a Streamlit `DeltaGenerator`, which does **not** support
+                # string methods like `strip()`.  Guard against this by ensuring we only
+                # process the value when it is actually a string.
+                if isinstance(san, str) and san:
+                    player_move_san = san.strip()
+                    st.session_state.human_game['player_move_input'] = player_move_san
                 
                 # Text input for move as an alternative
                 st.markdown("#### Ou digite seu lance:")
