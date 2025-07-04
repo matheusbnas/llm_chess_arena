@@ -224,20 +224,10 @@ def show_human_vs_llm(model_manager, db, game_engine):
             
             # Input options for player's move
             if is_player_turn and not game['board'].is_game_over():
-                # Tabuleiro interativo: captura SAN diretamente
-                san = ui.display_click_board(game['board'])
-                # `display_click_board` returns a value only after the user makes a move.
-                # It may initially be a Streamlit `DeltaGenerator`, which does **not** support
-                # string methods like `strip()`.  Guard against this by ensuring we only
-                # process the value when it is actually a string.
-                if isinstance(san, str) and san:
-                    player_move_san = san.strip()
-                    st.session_state.human_game['player_move_input'] = player_move_san
-                
-                # Text input for move as an alternative
-                st.markdown("#### Ou digite seu lance:")
+                # --- Texto / campos para inserir o lance -----------------
+                st.markdown("#### 💬 Digite seu lance:")
                 col_text1, col_text2 = st.columns([3, 1])
-                
+
                 with col_text1:
                     move_input = st.text_input(
                         "Digite seu lance (ex: e4, Nf3):",
@@ -266,6 +256,13 @@ def show_human_vs_llm(model_manager, db, game_engine):
                                         save_finished_game(game, db)
                                 
                                 st.rerun()
+
+                # --- Tabuleiro interativo para drag-and-drop -------------
+                san = ui.display_click_board(game['board'])
+                # `display_click_board` retorna string somente quando o usuário move.
+                if isinstance(san, str) and san:
+                    player_move_san = san.strip()
+                    st.session_state.human_game['player_move_input'] = player_move_san
             
             # AI move processing
             elif not is_player_turn and not game['board'].is_game_over():
